@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.natives;
 
@@ -10,7 +10,6 @@ import org.sikuli.script.support.IScriptRunner;
 import org.sikuli.script.support.RunTime;
 import org.sikuli.script.support.Runner;
 
-import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -89,7 +88,7 @@ public class MacUtil implements OSUtil {
           app.setName(theApp.getName());
           app.setToken(theApp.getToken());
           app.setExec(theApp.getExec());
-          app.setWindow(theApp.getWindow());
+          app.setWindow(theApp.getWindowTitle());
         }
       }
       return app;
@@ -120,7 +119,7 @@ public class MacUtil implements OSUtil {
                 app.setExec(part);
                 continue;
               }
-              app.setWindow(app.getWindow() + "," + parts);
+              app.setWindow(app.getWindowTitle() + "," + parts);
             }
           }
         }
@@ -274,13 +273,13 @@ public class MacUtil implements OSUtil {
             "resultlist";
     int retVal = Runner.getRunner(AppleScriptRunner.class).evalScript(cmd, SILENT_OPTIONS);
     String result = RunTime.get().getLastCommandResult().trim();
-    String[] processes = result.split(", ###");
+    String[] processes = (", " + result).split(", ###");
     List<App> appList = new ArrayList<>();
     int pid = 0;
     for (String process : processes) {
-//      if (process.startsWith(", ")) {
-//        process = process.substring(2);
-//      }
+      if (process.startsWith(", ")) {
+        process = process.substring(2);
+      }
       App theApp = new App();
       String[] parts = process.split(", \\|\\|\\|,");
       String pWin = parts[0].trim();

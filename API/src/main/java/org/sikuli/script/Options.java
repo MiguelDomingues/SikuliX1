@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
 package org.sikuli.script;
@@ -131,7 +131,7 @@ public class Options {
         log(-1, "loadOptions: not exists: %s", fOptions);
       }
     } else {
-      for (File aFile : new File[]{runtime.fSikulixStore, runtime.fWorkDir, runtime.fUserDir}) {
+      for (File aFile : new File[]{runtime.fUserDir, runtime.fWorkDir, runtime.fSikulixStore}) {
         fOptions = new File(aFile, fpOptions);
         if (fOptions.exists()) {
           break;

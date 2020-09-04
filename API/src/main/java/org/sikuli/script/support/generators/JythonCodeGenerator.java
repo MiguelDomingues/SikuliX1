@@ -1,16 +1,17 @@
 /*
- * Copyright (c) 2010-2018, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
 package org.sikuli.script.support.generators;
 
-import java.io.File;
-import java.util.Locale;
-
 import org.sikuli.script.Image;
 import org.sikuli.script.Location;
+import org.sikuli.script.Mouse;
 import org.sikuli.script.Pattern;
 import org.sikuli.script.support.recorder.actions.IRecordedAction;
+
+import java.io.File;
+import java.util.Locale;
 
 /**
  * Generates executable Jython code snippets.
@@ -20,7 +21,7 @@ import org.sikuli.script.support.recorder.actions.IRecordedAction;
 public class JythonCodeGenerator implements ICodeGenerator {
 
   @Override
-  public String pattern(Pattern pattern, String mask) {
+  public String pattern(Pattern pattern) {
     String imageFile = pattern.getFilename();
     Image image = pattern.getImage();
     float resizeFactor = pattern.getResize();
@@ -46,9 +47,13 @@ public class JythonCodeGenerator implements ICodeGenerator {
     if (offset != null && (offset.x != 0 || offset.y != 0)) {
       patternString += ".targetOffset(" + offset.x + "," + offset.y + ")";
     }
-    if (null != mask && !mask.isEmpty()) {
-      patternString += "." + mask;
-    }
+
+//TODO implement mask handling
+
+//    if (null != mask && !mask.isEmpty()) {
+//      patternString += "." + mask;
+//    }
+
     if (!patternString.isEmpty()) {
       patternString = pat + patternString;
     } else {
@@ -73,6 +78,37 @@ public class JythonCodeGenerator implements ICodeGenerator {
   }
 
   @Override
+  public String wheel(Pattern pattern, int direction, int steps, String[] modifiers, long stepDelay) {
+    String code = "wheel(";
+
+    if (pattern != null) {
+      code += pattern(pattern);
+      code += ", ";
+    }
+
+    code += direction > 0 ? "WHEEL_DOWN" : "WHEEL_UP";
+    code += ", ";
+    code += steps;
+
+    if(modifiers.length > 0) {
+      code += ", ";
+      code += String.join(" + ", modifiers);
+    }
+
+    if (stepDelay != Mouse.WHEEL_STEP_DELAY) {
+      if(modifiers.length == 0) {
+        code += ", 0";
+      }
+
+      code += ", ";
+      code += stepDelay;
+    }
+
+    code += ")";
+    return code;
+  }
+
+  @Override
   public String typeText(String text, String[] modifiers) {
     return typeKey("u\"" + text + "\"", modifiers);
   }
@@ -90,7 +126,7 @@ public class JythonCodeGenerator implements ICodeGenerator {
     String code = "wait(";
 
     if (pattern != null) {
-      code += pattern(pattern, null);
+      code += pattern(pattern);
     }
 
     if (seconds != null) {
@@ -128,7 +164,7 @@ public class JythonCodeGenerator implements ICodeGenerator {
     String code = type + "(";
 
     if (pattern != null) {
-      code += pattern(pattern, null);
+      code += pattern(pattern);
     }
 
     if(modifiersOrButtons.length > 0) {
@@ -147,10 +183,10 @@ public class JythonCodeGenerator implements ICodeGenerator {
     String code = "dragDrop(";
 
     if (sourcePattern != null) {
-      code += pattern(sourcePattern, null) + ", ";
+      code += pattern(sourcePattern) + ", ";
     }
 
-    code += pattern(targetPattern, null);
+    code += pattern(targetPattern);
     code += ")";
 
     return code;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script.support;
 
@@ -26,8 +26,7 @@ public class ScreenUnion extends Screen {
     super(true);
     _bounds = new Rectangle();
     for (int i = 0; i < Screen.getNumberScreens(); i++) {
-      Rectangle sbounds = Screen.getBounds(i);
-      _bounds = _bounds.union(sbounds);
+      _bounds = _bounds.union(Screen.getBounds(i));
     }
     x = _bounds.x;
     y = _bounds.y;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script.runnerSupport;
 
@@ -102,6 +102,15 @@ public class JythonSupport implements IRunnerSupport {
     }
     //instance.log(lvl, "init: success");
     runTime.isJythonReady = true;
+  }
+
+  /**
+   * For experts, who want to tweak the Jython interprter instance<br>
+   *   Usage: org.sikuli.script.runnerSupport.JythonSupport.get().interpreterGet()
+   * @return the singleton Jython interpreter instance (org.python.util.PythonInterpreter)
+   */
+  public PythonInterpreter interpreterGet() {
+    return interpreter;
   }
 
   public void interpreterCleanup() {

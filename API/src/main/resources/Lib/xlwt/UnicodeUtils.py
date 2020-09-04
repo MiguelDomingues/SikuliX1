@@ -39,7 +39,6 @@ var.     ln or
 [var.]   sz     (optional, only if phonetic=1) Asian Phonetic Settings Block 
 '''
 
-
 from struct import pack
 
 def upack2(s, encoding='ascii'):

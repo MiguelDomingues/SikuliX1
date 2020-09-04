@@ -1,9 +1,25 @@
 /*
- * Copyright (c) 2010-2018, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
 package org.sikuli.script.support;
 
+import org.apache.commons.io.FileUtils;
+import org.jnativehook.GlobalScreen;
+import org.jnativehook.NativeHookException;
+import org.jnativehook.NativeInputEvent;
+import org.jnativehook.keyboard.NativeKeyEvent;
+import org.jnativehook.keyboard.NativeKeyListener;
+import org.jnativehook.mouse.*;
+import org.sikuli.basics.Debug;
+import org.sikuli.basics.Settings;
+import org.sikuli.script.Screen;
+import org.sikuli.script.ScreenImage;
+import org.sikuli.script.SikuliXception;
+import org.sikuli.script.support.recorder.RecordedEventsFlow;
+import org.sikuli.script.support.recorder.actions.IRecordedAction;
+
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,31 +31,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.swing.ProgressMonitor;
-
-import org.apache.commons.io.FileUtils;
-import org.jnativehook.GlobalScreen;
-import org.jnativehook.NativeHookException;
-import org.jnativehook.NativeInputEvent;
-import org.jnativehook.keyboard.NativeKeyEvent;
-import org.jnativehook.keyboard.NativeKeyListener;
-import org.jnativehook.mouse.NativeMouseEvent;
-import org.jnativehook.mouse.NativeMouseListener;
-import org.jnativehook.mouse.NativeMouseMotionListener;
-import org.sikuli.basics.Debug;
-import org.sikuli.basics.Settings;
-import org.sikuli.script.Finder;
-import org.sikuli.script.Screen;
-import org.sikuli.script.ScreenImage;
-import org.sikuli.script.support.recorder.RecordedEventsFlow;
-import org.sikuli.script.support.recorder.actions.IRecordedAction;
-
 /**
  * Records native input events and transforms them into executable actions.
  *
  * @author balmma
  */
-public class Recorder implements NativeKeyListener, NativeMouseListener, NativeMouseMotionListener {
+public class Recorder implements NativeKeyListener, NativeMouseListener, NativeMouseMotionListener, NativeMouseWheelListener {
 
   private static final long MOUSE_SCREENSHOT_DELAY = 500;
   private static final long MOUSE_MOVE_SCREENSHOT_DELAY = 100;
@@ -112,13 +109,11 @@ public class Recorder implements NativeKeyListener, NativeMouseListener, NativeM
               if (screenshotDir.exists()) {
                 ScreenImage img = Screen.getPrimaryScreen().capture();
                 // Dedupe screenshots
-                if (new Finder(img).findDiffPercentage(currentImage) > 0.0001) {
+                if (img.diffPercentage(currentImage) > 0.0001) {
                   currentImage = img;
-                  currentImageFilePath = currentImage.save(screenshotDir.getAbsolutePath());
-                  eventsFlow.addScreenshot(currentImageFilePath);
-                } else {
-                  eventsFlow.addScreenshot(currentImageFilePath);
+                  currentImageFilePath = currentImage.saveInto(screenshotDir);
                 }
+                eventsFlow.addScreenshot(currentImageFilePath);
               }
             }
           } finally {
@@ -156,6 +151,7 @@ public class Recorder implements NativeKeyListener, NativeMouseListener, NativeM
    */
   public void start() {
     if (!running) {
+      RunTime.loadLibrary(RunTime.libOpenCV);
       running = true;
 
       eventsFlow.clear();
@@ -166,7 +162,7 @@ public class Recorder implements NativeKeyListener, NativeMouseListener, NativeM
         screenshotDir = Files.createTempDirectory("sikulix").toFile();
         screenshotDir.deleteOnExit();
       } catch (IOException e) {
-        e.printStackTrace();
+        throw new SikuliXception("Recorder: createTempDirectory: not possible");
       }
 
       screenshot(0);
@@ -175,6 +171,7 @@ public class Recorder implements NativeKeyListener, NativeMouseListener, NativeM
       GlobalScreen.addNativeKeyListener(this);
       GlobalScreen.addNativeMouseListener(this);
       GlobalScreen.addNativeMouseMotionListener(this);
+      GlobalScreen.addNativeMouseWheelListener(this);
     }
   }
 
@@ -188,6 +185,7 @@ public class Recorder implements NativeKeyListener, NativeMouseListener, NativeM
     if (running) {
       running = false;
 
+      GlobalScreen.removeNativeMouseWheelListener(this);
       GlobalScreen.removeNativeMouseMotionListener(this);
       GlobalScreen.removeNativeMouseListener(this);
       GlobalScreen.removeNativeKeyListener(this);
@@ -251,5 +249,11 @@ public class Recorder implements NativeKeyListener, NativeMouseListener, NativeM
       saveMousePosition(e);
       add(e, MOUSE_MOVE_SCREENSHOT_DELAY);
     }
+  }
+
+  @Override
+  public void nativeMouseWheelMoved(NativeMouseWheelEvent e) {
+    saveMousePosition(e);
+    add(e, MOUSE_SCREENSHOT_DELAY);
   }
 }

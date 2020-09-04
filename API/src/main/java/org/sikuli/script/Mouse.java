@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script;
 
@@ -184,12 +184,15 @@ public class Mouse {
    *
    * wait before and after: &gt; 9 taken as milli secs - 1 ... 9 are seconds
    *
-   * @param loc where to click
+   * @param loc where to click (not null)
    * @param action L,R,M left, right, middle - D means double click
    * @param args timing parameters
    * @return the location
    */
   public static Location click(Location loc, String action, Integer... args) {
+    if (null == loc) {
+      throw new IllegalArgumentException("Mouse: click: Location should not be null");
+    }
     if (get().device.isSuspended() || loc.isOtherScreen()) {
       return null;
     }
@@ -244,7 +247,7 @@ public class Mouse {
     }
   }
 
-  protected static int click(Location loc, int buttons, Integer modifiers, boolean dblClick, Region region) {
+  protected static int click(Location loc, int buttons, Integer modifiers, boolean dblClick, Object owner) {
     if (modifiers == null) {
       modifiers = 0;
     }
@@ -265,7 +268,7 @@ public class Mouse {
       profiler.end();
       return 0;
     }
-    get().device.use(region);
+    get().device.use(owner);
     profiler.lap("before move");
     doMove(shouldMove, screen, loc, robot);
     robot.clickStarts();
@@ -297,7 +300,7 @@ public class Mouse {
     robot.clickEnds();
     robot.waitForIdle();
     profiler.lap("before let");
-    get().device.let(region);
+    get().device.let(owner);
     long duration = profiler.end();
     Debug.action(getClickMsg(loc, buttons, modifiers, dblClick, duration));
     return 1;
@@ -398,7 +401,7 @@ public class Mouse {
     return move(at().offset(xoff, yoff));
   }
 
-  protected static int move(Location loc, Region region) {
+  protected static int move(Location loc, Object owner) {
     if (get().device.isSuspended()) {
       return 0;
     }
@@ -413,7 +416,7 @@ public class Mouse {
         return 0;
       }
       if (!robot.isRemote()) {
-        get().device.use(region);
+        get().device.use(owner);
       }
       if (Mouse.hasRandom()) {
         Location offset = Mouse.get().makeRandom(loc);
@@ -421,7 +424,7 @@ public class Mouse {
       }
       doMove(true, screen, loc, robot);
       if (!robot.isRemote()) {
-        get().device.let(region);
+        get().device.let(owner);
       }
       return 1;
     }
@@ -437,12 +440,12 @@ public class Mouse {
     down(buttons, null);
   }
 
-  protected static void down(int buttons, Region region) {
+  protected static void down(int buttons, Element element) {
     if (get().device.isSuspended()) {
       return;
     }
-    get().device.use(region);
-    Screen.getRobot(region).mouseDown(buttons);
+    get().device.use(element);
+    element.getRobotForElement().mouseDown(buttons);
   }
 
   /**
@@ -462,13 +465,13 @@ public class Mouse {
     up(buttons, null);
   }
 
-  protected static void up(int buttons, Region region) {
+  protected static void up(int buttons, Element element) {
     if (get().device.isSuspended()) {
       return;
     }
-    Screen.getRobot(region).mouseUp(buttons);
-    if (region != null) {
-      get().device.let(region);
+    element.getRobotForElement().mouseUp(buttons);
+    if (element != null) {
+      get().device.let(element);
     }
   }
 
@@ -480,19 +483,26 @@ public class Mouse {
    * @param steps value
    */
   public static void wheel(int direction, int steps) {
-    wheel(direction, steps, null);
+    wheel(null, direction, steps, 0);
   }
 
-  protected static void wheel(int direction, int steps, Region region) {
-    wheel(direction,steps,region, WHEEL_STEP_DELAY);
+  protected static void wheel(Region region, int direction, int steps, int modifiers) {
+    wheel(region, direction,steps, modifiers, WHEEL_STEP_DELAY);
   }
 
-  protected static void wheel(int direction, int steps, Region region, int stepDelay) {
+  protected static void wheel(Region region, int direction, int steps, int modifiers, int stepDelay) {
+    System.out.println(stepDelay);
+
     if (get().device.isSuspended()) {
       return;
     }
     IRobot r = Screen.getRobot(region);
     get().device.use(region);
+
+    if (modifiers > 0) {
+      r.pressModifiers(modifiers);
+    }
+
     String wheelComment = (direction == WHEEL_UP ? "Content upwards" : "Content downwards");
     if (!Settings.WheelNatural) {
       wheelComment = (direction == WHEEL_UP ? "Content downwards" : "Content upwards");
@@ -503,6 +513,11 @@ public class Mouse {
       r.mouseWheel(direction);
       r.delay(stepDelay);
     }
+
+    if (modifiers > 0) {
+      r.releaseModifiers(modifiers);
+    }
+
     get().device.let(region);
   }
 }

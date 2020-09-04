@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
+ */
+
 package org.sikuli.idesupport;
 
 import javax.swing.JComponent;
@@ -318,9 +322,9 @@ public class Resizable extends JComponent {
         public void mouseReleased(MouseEvent me) {
           Rectangle bounds = Resizable.this.getBounds();
           if(moved) {
-            getParent().dispatchEvent(new MouseEvent(getParent(), MouseEvent.MOUSE_RELEASED, me.getWhen(), me.getModifiers(), bounds.x + me.getX(), bounds.y + me.getY(), me.getClickCount(), false));
+            getParent().dispatchEvent(new MouseEvent(Resizable.this, MouseEvent.MOUSE_RELEASED, me.getWhen(), me.getModifiers(), bounds.x + me.getX(), bounds.y + me.getY(), me.getClickCount(), false));
           } else {
-            getParent().dispatchEvent(new MouseEvent(getParent(), MouseEvent.MOUSE_PRESSED, me.getWhen(), me.getModifiers(), bounds.x + me.getX(), bounds.y + me.getY(), me.getClickCount(), false));
+            getParent().dispatchEvent(new MouseEvent(Resizable.this, MouseEvent.MOUSE_PRESSED, me.getWhen(), me.getModifiers(), bounds.x + me.getX(), bounds.y + me.getY(), me.getClickCount(), false));
           }
           moved = false;
           startPos = null;

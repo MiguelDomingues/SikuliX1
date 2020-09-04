@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script.support;
 
@@ -18,40 +18,49 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class ExtensionManager {
 
-  private static File sxExtensions = new File(RunTime.getAppPath(), "Extensions");
+  private static File sxExtensions = new File(RunTime.getAppDataFolder(), "Extensions");
 
-  //<editor-fold desc="10 basic handling">
+  private static String outerClassPath = System.getProperty("java.class.path");
+  private static String separator = File.pathSeparator;
+  private static String extensionClassPath = "";
+
   public static String makeClassPath(File jarFile) {
-    RunTime.startLog(1, "starting");
-    String jarPath = jarFile.getAbsolutePath();
-    if (!classPath.isEmpty()) {
-      classPath += File.pathSeparator;
-    }
-    classPath += jarPath;
+    File[] sxFolderList = null;
+    if (jarFile != null) {
+      RunTime.startLog(1, "starting with classpath: %.100s ...", outerClassPath);
+      String jarPath = jarFile.getAbsolutePath();
 
-    File[] sxFolderList = jarFile.getParentFile().listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(File dir, String name) {
-        if (name.endsWith(".jar")) {
-          if (name.contains("jython") && name.contains("standalone")) {
-            moveJython = true;
-            return true;
-          }
-          if (name.contains("jruby") && name.contains("complete")) {
-            moveJRuby = true;
-            return true;
-          }
+      if (!outerClassPath.isEmpty()) {
+        outerClassPath = outerClassPath.replace(jarPath, "");
+        outerClassPath = outerClassPath.replace(separator + separator, separator);
+        if (outerClassPath.startsWith(separator)) {
+          outerClassPath = outerClassPath.substring(1);
         }
-        return false;
       }
-    });
+      extensionClassPath = jarPath;
+
+      sxFolderList = jarFile.getParentFile().listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+          if (name.endsWith(".jar")) {
+            if (name.contains("jython") && name.contains("standalone")) {
+              moveJython = true;
+              return true;
+            }
+            if (name.contains("jruby") && name.contains("complete")) {
+              moveJRuby = true;
+              return true;
+            }
+          }
+          return false;
+        }
+      });
+    }
 
     if (!sxExtensions.exists()) {
       sxExtensions.mkdir();
@@ -66,7 +75,7 @@ public class ExtensionManager {
       for (File fExtension : fExtensions) {
         String name = fExtension.getName();
         if ((moveJython && name.contains("jython") && name.contains("standalone")) ||
-                (moveJRuby && name.contains("jruby") && name.contains("complete"))) {
+            (moveJRuby && name.contains("jruby") && name.contains("complete"))) {
           fExtension.delete();
         }
       }
@@ -87,9 +96,6 @@ public class ExtensionManager {
     for (File fExtension : fExtensions) {
       String pExtension = fExtension.getAbsolutePath();
       if (pExtension.endsWith(".jar")) {
-        if (!classPath.isEmpty()) {
-          classPath += File.pathSeparator;
-        }
         if (pExtension.contains("jython") && pExtension.contains("standalone")) {
           if (jythonReady) {
             continue;
@@ -105,84 +111,168 @@ public class ExtensionManager {
             jrubyReady = true;
           }
         } else if (pExtension.contains("py4j")) {
-
-        } else {
+          RunTime.get().startLog(-1, "Extension: py4j: not supported");
           continue;
+        } else {
+          if (extensionClassPath.contains(pExtension)) {
+            continue;
+          }
         }
-        classPath += pExtension;
-        RunTime.startLog(1, "adding extension: %s", fExtension);
+        if (!extensionClassPath.isEmpty()) {
+          extensionClassPath += separator;
+        }
+        extensionClassPath += pExtension;
+        RunTime.startLog(1, "adding extension file: %s", fExtension);
+      }
+    }
+
+    String finalClassPath = outerClassPath;
+    if (!extensionClassPath.isEmpty()) {
+      if (!outerClassPath.isEmpty() && jarFile != null) {
+        finalClassPath = extensionClassPath + separator + outerClassPath;
+      } else {
+        finalClassPath = extensionClassPath;
       }
     }
     if (!jythonReady && !jrubyReady) {
-      // https://github.com/RaiMan/SikuliX1/wiki/How-to-make-Jython-ready-in-the-IDE
-      String helpURL = "https://7i.fi/IDE-Jython";
-      String message = "Neither Jython nor JRuby available" +
-              "\nPlease consult the docs for a solution.\n" +
-              "\nIDE might not be useable with JavaScript only";
-      if (RunTime.isIDE()) {
-        JOptionPane.showMessageDialog(null,
-                message + "\n\nClick OK to get more help in a browser window",
-                "IDE startup problem",
-                JOptionPane.ERROR_MESSAGE);
-        try {
-          Desktop.getDesktop().browse(new URI(helpURL));
-        } catch (IOException ex) {
-        } catch (URISyntaxException ex) {
+      if (!finalClassPath.toLowerCase().contains("jython") && !finalClassPath.toLowerCase().contains("jruby")) {
+        // https://github.com/RaiMan/SikuliX1/wiki/How-to-make-Jython-ready-in-the-IDE
+        String helpURL = "https://github.com/RaiMan/SikuliX1/wiki/How-to-make-Jython-ready-in-the-IDE";
+        String message = "Neither Jython nor JRuby available" +
+            "\nPlease consult the docs for a solution.\n" +
+            "\nIDE might not be useable with JavaScript only";
+        if (RunTime.isIDE()) {
+          JOptionPane.showMessageDialog(null,
+              message + "\n\nClick OK to get more help in a browser window",
+              "IDE startup problem",
+              JOptionPane.ERROR_MESSAGE);
+          try {
+            Desktop.getDesktop().browse(new URI(helpURL));
+          } catch (IOException ex) {
+          } catch (URISyntaxException ex) {
+          }
         }
       }
     }
-    return classPath;
+    return finalClassPath;
   }
 
-  private static String classPath = "";
-
   public static void readExtensions(boolean afterStart) {
-    sxExtensionsFileContent = new ArrayList<>();
+    extensionsFileContent = new ArrayList<>();
     sxExtensionsFile = new File(sxExtensions, "extensions.txt");
     String txtExtensions = FileManager.readFileToString(sxExtensionsFile).trim();
     if (!txtExtensions.isEmpty()) {
       String[] lines = txtExtensions.split("\\n");
+      String extlines = "";
       for (String line : lines) {
         line = line.trim();
         if (line.isEmpty() || line.startsWith("#") || line.startsWith("//")) {
           continue;
         }
-        sxExtensionsFileContent.add(line);
+        if (RunTime.get().isVersionRelease() && line.toUpperCase().startsWith("DEV:")) {
+          continue;
+        }
+        extlines += line + "\n";
+        extensionsFileContent.add(line);
+      }
+      if (extensionsFileContent.size() > 0) {
+        RunTime.startLog(1, "extensions.txt\n%s", extlines.trim());
       }
     }
-
-    if (sxExtensionsFileContent.size() == 0) {
+    if (extensionsFileContent.size() == 0) {
       if (!afterStart) {
         RunTime.startLog(1, "no extensions.txt nor valid content");
       }
       return;
     }
 
-    if (!afterStart) {
-      RunTime.startLog(1, "*** Extensions:");
-    }
-    for (String line : sxExtensionsFileContent) {
-      if (!afterStart) {
-        RunTime.startLog(1, "%s", line);
-      }
+    Map<Integer, String> lineTokenMap = new HashMap<>();
+    Map<String, Integer> tokenLineMap = new HashMap<>();
+    List<String> filePathList = new ArrayList<>();
+
+    int lineNo = -1;
+    for (String line : extensionsFileContent) {
+      lineNo++;
       String token = "";
-      String extPath = line;
-      String[] lineParts = line.split("=");
-      if (lineParts.length > 1) {
-        token = lineParts[0].trim();
-        extPath = lineParts[1].trim();
+      String extPath = "";
+      if (line.contains("=")) {
+        String[] lineParts = line.split("=");
+        if (lineParts.length > 0) {
+          token = lineParts[0].trim().toUpperCase();
+          if (token.startsWith("DEV:")) {
+            token = token.substring(4).trim();
+          }
+          if (tokenLineMap.containsKey(token)) {
+            Integer ln = tokenLineMap.get(token);
+            tokenLineMap.put(token, lineNo);
+            lineTokenMap.remove(ln);
+            lineTokenMap.put(lineNo, token);
+            filePathList.set(ln, "");
+          } else {
+            lineTokenMap.put(lineNo, token);
+            tokenLineMap.put(token, lineNo);
+          }
+          if (lineParts.length > 1) {
+            extPath = lineParts[1].trim();
+          }
+        }
+      } else {
+        if (line.toUpperCase().startsWith("DEV:")) {
+          line = line.substring(4).trim();
+        }
+        extPath = line; 
       }
-      File extFile = new File(extPath);
-      if (extFile.isAbsolute() && !extFile.exists()) {
+      filePathList.add(extPath);
+    }
+
+    lineNo = -1;
+    for (String extPath : filePathList) {
+      lineNo++;
+      if (extPath.isEmpty()) {
         continue;
       }
-      if (!token.isEmpty()) {
-        if ("jython".equals(token)) {
+      String token = lineTokenMap.get(lineNo);
+      String line;
+      if (token == null) {
+        line = extPath;
+      } else {
+        line = token + " = " + extPath;
+      }
+      File extFile = new File(extPath);
+      if (extFile.isAbsolute()) {
+        if (!extFile.exists() || !extFile.getName().endsWith(".jar")) {
+          RunTime.startLog(-1, "extension path not valid: %s", line);
+          continue;
+        }
+      } else {
+        extFile = new File(sxExtensions, extFile.getPath());
+        if (!extFile.exists() || !extFile.getName().endsWith(".jar")) {
+          RunTime.startLog(-1, "extension path not valid: %s", line);
+          continue;
+        }
+      }
+      if (token != null) {
+        if ("JYTHON".equals(token)) {
           if (afterStart) {
+            continue;
+          }
+          if (!extFile.getName().endsWith(".jar")) {
+            RunTime.startLog(-1, "Jython: extension is not jar: %s", line); //TODO search jar
             continue;
           }
           jythonReady = true;
           setJythonExtern(true);
+        }
+        if ("JRUBY".equals(token)) {
+          if (afterStart) {
+            continue;
+          }
+          if (!extFile.getName().endsWith(".jar")) {
+            RunTime.startLog(-1, "JRuby: extension is not jar: %s", line); //TODO search jar
+            continue;
+          }
+          jrubyReady = true;
+          setJrubyExtern(true);
         }
         if ("python".equals(token)) {
           if (!afterStart) {
@@ -202,18 +292,18 @@ public class ExtensionManager {
           }
           continue;
         }
-        if (!afterStart) {
-          if (!classPath.isEmpty()) {
-            classPath += File.pathSeparator;
-          }
-          classPath += extPath;
-          RunTime.startLog(1, "adding extension: %s", extPath);
+      }
+      if (!afterStart) {
+        if (!extensionClassPath.isEmpty()) {
+          extensionClassPath += File.pathSeparator;
         }
+        extensionClassPath += extFile.getAbsolutePath();
+        RunTime.startLog(1, "adding extension entry: %s", line);
       }
     }
   }
 
-  private static List<String> sxExtensionsFileContent = new ArrayList<>();
+  private static List<String> extensionsFileContent = new ArrayList<>();
 
   public static boolean hasExtensionsFile() {
     return sxExtensionsFile != null;
@@ -227,18 +317,18 @@ public class ExtensionManager {
 
   public static String getExtensionsFileDefault() {
     return "# add absolute paths one per line, that point to other jars,\n" +
-            "# that need to be available on Java's classpath at runtime\n" +
-            "# They will be added automatically at startup in the given sequence\n" +
-            "\n" +
-            "# empty lines and lines beginning with # or // are ignored\n" +
-            "# delete the leading # to activate a prepared keyword line\n" +
-            "\n" +
-            "# pointer to a Jython install outside SikuliX\n" +
-            "# jython = c:/jython2.7.1/jython.jar\n" +
-            "\n" +
-            "# the Python executable as used on a commandline\n" +
-            "# activating will enable the support for real Python\n" +
-            "# python = python\n";
+        "# that need to be available on Java's classpath at runtime\n" +
+        "# They will be added automatically at startup in the given sequence\n" +
+        "\n" +
+        "# empty lines and lines beginning with # or // are ignored\n" +
+        "# delete the leading # to activate a prepared keyword line\n" +
+        "\n" +
+        "# pointer to a Jython install outside SikuliX\n" +
+        "# jython = c:/jython2.7.1/jython.jar\n" +
+        "\n" +
+        "# the Python executable as used on a commandline\n" +
+        "# activating will enable the support for real Python\n" +
+        "# python = python\n";
   }
 
   public static boolean hasShebang(String type, String scriptFile) {
@@ -252,7 +342,7 @@ public class ExtensionManager {
       }
     } catch (Exception ex) {
       if (scriptFile.length() >= type.length()
-              && type.equals(scriptFile.substring(0, type.length()).toUpperCase())) {
+          && type.equals(scriptFile.substring(0, type.length()).toUpperCase())) {
         return true;
       }
     }
@@ -264,15 +354,15 @@ public class ExtensionManager {
     int WARNING_ACCEPTED = 1;
     int WARNING_DO_NOTHING = 0;
     String warn = "Nothing to do here currently - click what you like ;-)\n" +
-            "\nExtensions folder: \n" + sxExtensions +
-            "\n\nCurrent content:";
+        "\nExtensions folder: \n" + sxExtensions +
+        "\n\nCurrent content:";
     List<String> extensionNames = getExtensionNames();
     for (String extension : extensionNames) {
       warn += "\n" + extension;
     }
     if (hasExtensionsFile()) {
       warn += "\n\nextensions.txt content:";
-      for (String extension : sxExtensionsFileContent) {
+      for (String extension : extensionsFileContent) {
         warn += "\n" + extension;
       }
     }
@@ -283,7 +373,7 @@ public class ExtensionManager {
     options[WARNING_ACCEPTED] = "More ...";
     options[WARNING_CANCEL] = "Cancel";
     int ret = JOptionPane.showOptionDialog(null, warn, title,
-            0, JOptionPane.WARNING_MESSAGE, null, options, options[2]);
+        0, JOptionPane.WARNING_MESSAGE, null, options, options[2]);
     if (ret == WARNING_CANCEL || ret == JOptionPane.CLOSED_OPTION) {
       return;
     }
@@ -346,14 +436,14 @@ public class ExtensionManager {
     return sxSitesTxt;
   }
 
-  private static File sxSitesTxt = new File(RunTime.getAppPath(), "Lib/site-packages/sites.txt");
+  private static File sxSitesTxt = new File(RunTime.getAppDataFolder(), "Lib/site-packages/sites.txt");
 
   public static String getSitesTxtDefault() {
     return "# add absolute paths one per line, that point to other directories/jars,\n" +
-            "# where importable modules (Jython, plain Python, SikuliX scripts, ...) can be found.\n" +
-            "# They will be added automatically at startup to the end of sys.path in the given sequence\n" +
-            "\n" +
-            "# lines beginning with # and blank lines are ignored and can be used as comments\n";
+        "# where importable modules (Jython, plain Python, SikuliX scripts, ...) can be found.\n" +
+        "# They will be added automatically at startup to the end of sys.path in the given sequence\n" +
+        "\n" +
+        "# lines beginning with # and blank lines are ignored and can be used as comments\n";
   }
 
   public static boolean shouldCheckContent(String type, String identifier) {
@@ -418,10 +508,10 @@ public class ExtensionManager {
     String title = "Android Support - !!EXPERIMENTAL!!";
     if (message.isEmpty()) {
       String warn = "Device found: " + aScr.getDeviceDescription() + "\n\n" +
-              "click Check: a short test is run with the device\n" +
-              "click Default...: set device as default screen for capture\n" +
-              "click Cancel: capture is reset to local screen\n" +
-              "\nBE PREPARED: Feature is experimental - no guarantee ;-)";
+          "click Check: a short test is run with the device\n" +
+          "click Default...: set device as default screen for capture\n" +
+          "click Cancel: capture is reset to local screen\n" +
+          "\nBE PREPARED: Feature is experimental - no guarantee ;-)";
       String[] options = new String[3];
       options[WARNING_DO_NOTHING] = "Check";
       options[WARNING_ACCEPTED] = "Default Android";
@@ -715,6 +805,6 @@ public class ExtensionManager {
       version = version_;
     }
   }
-  //</editor-fold>
+//</editor-fold>
 }
 

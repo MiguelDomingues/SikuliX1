@@ -1,7 +1,9 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.basics;
+
+import org.sikuli.script.support.RunTime;
 
 import java.awt.Dimension;
 import java.awt.Event;
@@ -15,8 +17,6 @@ import java.util.Locale;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.PreferenceChangeListener;
 import java.util.prefs.Preferences;
-
-import org.sikuli.script.Sikulix;
 
 public class PreferencesUser {
 
@@ -50,7 +50,7 @@ public class PreferencesUser {
                   + ".log   { color: #09806A; }"
                   + ".error { color: red; }";
   static PreferencesUser _instance = null;
-  Preferences pref = Preferences.userNodeForPackage(Sikulix.class);
+  Preferences pref = null;
 
   public static PreferencesUser get() {
     if (_instance == null) {
@@ -61,12 +61,16 @@ public class PreferencesUser {
 
   private PreferencesUser() {
     Debug.log(3, "init user preferences");
+    if (RunTime.isSandbox()) {
+      pref = Preferences.userNodeForPackage(org.sikuli.script.Sikulix.class);
+    } else {
+      pref = Preferences.userNodeForPackage(org.sikuli.script.Sikulix.class);
+    }
   }
 
   public boolean save(String path) {
     try {
       FileOutputStream pout = new FileOutputStream(new File(path));
-      ;
       pref.exportSubtree(pout);
       pout.close();
     } catch (Exception ex) {
@@ -105,6 +109,10 @@ public class PreferencesUser {
   public void reset() {
     removeAll("");
     setDefaults();
+    store();
+  }
+
+  public void store() {
     try {
       pref.flush();
     } catch (BackingStoreException e) {

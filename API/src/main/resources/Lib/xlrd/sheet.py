@@ -1,8 +1,6 @@
 # -*- coding: cp1252 -*-
 
 ##
-# <p> Portions copyright © 2005-2013 Stephen John Machin, Lingfo Pty Ltd</p>
-# <p>This module is part of the xlrd package, which is released under a BSD-style licence.</p>
 ##
 
 # 2010-04-25 SJM fix zoom factors cooking logic

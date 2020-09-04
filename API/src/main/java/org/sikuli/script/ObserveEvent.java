@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script;
 
@@ -30,19 +30,36 @@ public class ObserveEvent {
   private List<Match> changes = null;
   private long time;
   private String name;
-  private Object[] vals = new Object[] {null, null, null};
+  private Object[] vals = new Object[]{null, null, null};
 
   public ObserveEvent() {
   }
 
   /**
-   * INTERNAL USE ONLY: creates an observed event
+   * INTERNAL: creates an observed event
+   * @param name name
+   * @param type type
+   * @param what to search
+   * @param where to search
+   */
+  public ObserveEvent(String name, Type type, Element what, Element where) { //TODO handler parameter
+    init(name, type, what, where, null, 0);
+  }
+
+  /**
+   * INTERNAL: creates an observed event
+   * @param name name
+   * @param type type
+   * @param v1 value 1
+   * @param v2 value 2
+   * @param v3 value 3
+   * @param now now
    */
   public ObserveEvent(String name, Type type, Object v1, Object v2, Object v3, long now) {
     init(name, type, v1, v2, v3, now);
   }
 
-	private void init(String name, Type type, Object v1, Object v2, Object v3, long now) {
+  private void init(String name, Type type, Object v1, Object v2, Object v3, long now) {
     this.name = name;
     this.type = type;
     if (now > 0) {
@@ -61,10 +78,11 @@ public class ObserveEvent {
       setMatch(v2);
       setPattern(v1);
     }
-	}
+  }
 
   /**
    * get the observe event type
+   *
    * @return a string containing either APPEAR, VANISH, CHANGE or GENERIC
    */
   public String getType() {
@@ -73,60 +91,75 @@ public class ObserveEvent {
 
   /**
    * check the observe event type
+   *
    * @return true if it is APPEAR, false otherwise
    */
   public boolean isAppear() {
     return Type.APPEAR.equals(type);
   }
 
- /**
+  /**
    * check the observe event type
+   *
    * @return true if it is VANISH, false otherwise
    */
-   public boolean isVanish() {
+  public boolean isVanish() {
     return Type.VANISH.equals(type);
   }
 
- /**
+  /**
    * check the observe event type
+   *
    * @return true if it is CHANGE, false otherwise
    */
-   public boolean isChange() {
+  public boolean isChange() {
     return Type.CHANGE.equals(type);
   }
 
- /**
+  /**
    * check the observe event type
+   *
    * @return true if it is GENERIC, false otherwise
    */
-   public boolean isGeneric() {
+  public boolean isGeneric() {
     return Type.GENERIC.equals(type);
   }
 
- /**
+  /**
    * check the observe event type
+   *
    * @return true if it is FINDFAILED, false otherwise
    */
-   public boolean isFindFailed() {
+  public boolean isFindFailed() {
     return Type.FINDFAILED.equals(type);
   }
 
- /**
+  /**
    * check the observe event type
+   *
    * @return true if it is MISSING, false otherwise
    */
-   public boolean isMissing() {
+  public boolean isMissing() {
     return Type.MISSING.equals(type);
+  }
+
+  public void setActive() {
+    getRegion().setActive(getName());
+  }
+
+  public void setInactive() {
+    getRegion().setInactive(getName());
   }
 
   /**
    * for type GENERIC: 3 values can be stored in the event
    * (the value's type is known by creator and user of getVals as some private protocol)
+   *
    * @param v1
    * @param v2
    * @param v3
    */
-  public void setVals(Object v1, Object v2, Object v3) {
+  protected void setVals(Object v1, Object v2, Object v3) {
     vals[0] = v1;
     vals[1] = v2;
     vals[2] = v3;
@@ -134,6 +167,7 @@ public class ObserveEvent {
 
   /**
    * for type GENERIC: (the value's type is known by creator and user of getVals as some private protocol)
+   *
    * @return an array with the 3 stored values (might be null)
    */
   public Object[] getVals() {
@@ -141,7 +175,6 @@ public class ObserveEvent {
   }
 
   /**
-   *
    * @return the observer name of this event
    */
   public String getName() {
@@ -149,7 +182,6 @@ public class ObserveEvent {
   }
 
   /**
-   *
    * @return this event's observer's region
    */
   public Region getRegion() {
@@ -163,7 +195,6 @@ public class ObserveEvent {
   }
 
   /**
-   *
    * @return the observed match (APEAR, VANISH)
    */
   public Match getMatch() {
@@ -181,7 +212,6 @@ public class ObserveEvent {
   }
 
   /**
-   *
    * @return a list of observed changes as matches (CHANGE)
    */
   public List<Match> getChanges() {
@@ -196,7 +226,6 @@ public class ObserveEvent {
   }
 
   /**
-   *
    * @return the used pattern for this event's observing
    */
   public Pattern getPattern() {
@@ -246,6 +275,7 @@ public class ObserveEvent {
   /**
    * tell the observer to repeat this event's observe action after given time in secs
    * after returning from this handler (APPEAR, VANISH)
+   *
    * @param secs seconds
    */
   public void repeat(long secs) {
@@ -268,6 +298,7 @@ public class ObserveEvent {
 
   /**
    * stops the observer and prints the given text
+   *
    * @param text text
    */
   public void stopObserver(String text) {
@@ -278,10 +309,10 @@ public class ObserveEvent {
   public String toString() {
     if (type == Type.CHANGE) {
       return String.format("Event(%s) %s on: %s with: %d count: %d",
-            type, name, region, index, getCount());
+          type, name, region, index, getCount());
     } else {
       return String.format("Event(%s) %s on: %s with: %s\nmatch: %s count: %d",
-            type, name, region, pattern, match, getCount());
+          type, name, region, pattern, match, getCount());
     }
   }
 }

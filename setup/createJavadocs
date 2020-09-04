@@ -1,6 +1,6 @@
 #!/bin/sh
 echo ------- creating javadocs
-apijar=API/target/sikulixapi-1.1.4-SNAPSHOT-complete.jar
+apijar=API/target/sikulixapi-2.1.0-SNAPSHOT-complete.jar
 apisrc=API/src/main/java/org/sikuli/script
 basicssrc=API/src/main/java/org/sikuli/basics
 echo $apisrc/Region.java >createJavadocsClasses
@@ -21,6 +21,7 @@ echo $apisrc/ObserverCallBack.java >>createJavadocsClasses
 echo $apisrc/ObserveEvent.java >>createJavadocsClasses
 echo $apisrc/App.java >>createJavadocsClasses
 echo $apisrc/Env.java >>createJavadocsClasses
+echo $apisrc/OCR.java >>createJavadocsClasses
 echo $basicssrc/Settings.java >>createJavadocsClasses
 echo $basicssrc/Debug.java >>createJavadocsClasses
 javadoc -public -classpath $apijar -d pages/javadocs @createJavadocsClasses

@@ -1,28 +1,21 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.ide;
 
-import java.awt.Color;
-import java.awt.Container;
-import java.awt.Point;
-import java.awt.Rectangle;
-import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.util.Locale;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.border.Border;
-import javax.swing.text.Element;
 import org.sikuli.basics.Debug;
 import org.sikuli.basics.FileManager;
 import org.sikuli.script.Image;
 import org.sikuli.script.Location;
+
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.text.Element;
+import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.util.Locale;
 
 public class EditorPatternLabel extends EditorRegionLabel {
 
@@ -30,7 +23,7 @@ public class EditorPatternLabel extends EditorRegionLabel {
   public static String NOTFOUND = "!? ";
   private String lblText;
   private EditorPane pane;
-  private float sim;
+  private double sim;
   private float resizeFactor;
   private String mask;
   private Location off;
@@ -74,7 +67,7 @@ public class EditorPatternLabel extends EditorRegionLabel {
 
   private void initLabel(EditorPane parentPane) {
     pane = parentPane;
-    sim = 0.7F;
+    sim = 0.7;
     off = new Location(0, 0);
     resizeFactor = 0;
     mask = "";
@@ -86,7 +79,7 @@ public class EditorPatternLabel extends EditorRegionLabel {
       for (String tok : tokens) {
         //System.out.println("token: " + tok);
         if (tok.startsWith("exact")) {
-          sim = 0.99F;
+          sim = 0.99;
         } else if (tok.startsWith("Pattern")) {
           setFileNames(tok.substring(tok.indexOf("\"") + 1, tok.lastIndexOf("\"")));
           if (lblText == null) {
@@ -95,24 +88,24 @@ public class EditorPatternLabel extends EditorRegionLabel {
         } else if (tok.startsWith("similar")) {
           String strArg = tok.substring(tok.lastIndexOf("(") + 1);
           try {
-            sim = Float.valueOf(strArg);
+            sim = Double.parseDouble(strArg);
           } catch (NumberFormatException e) {
-            sim = 0.7F;
+            sim = 0.7;
           }
         } else if (tok.startsWith("targetOffset")) {
           String strArg = tok.substring(tok.lastIndexOf("(") + 1);
           String[] args = strArg.split(",");
           try {
             off = new Location(0, 0);
-            off.x = Integer.valueOf(args[0]);
-            off.y = Integer.valueOf(args[1]);
+            off.x = Integer.parseInt(args[0]);
+            off.y = Integer.parseInt(args[1]);
           } catch (NumberFormatException e) {
           }
         } else if (tok.startsWith("resize")) {
           String strArg = tok.substring(tok.lastIndexOf("(") + 1);
           float rf;
           try {
-            rf = Float.valueOf(strArg);
+            rf = Float.parseFloat(strArg);
           } catch (NumberFormatException e) {
             rf = 0;
           }
@@ -146,7 +139,7 @@ public class EditorPatternLabel extends EditorRegionLabel {
 						&& FileManager.isFilenameDotted(givenName)) {
 			return;
 		}
-		Image img = Image.createThumbNail(givenName);
+		Image img = new Image(givenName);
 		if (img.isValid()) {
 			if (isFromCapture || !img.isAbsolute() || img.isBundled()) {
 				image = img;
@@ -165,7 +158,7 @@ public class EditorPatternLabel extends EditorRegionLabel {
   public void showPopup(boolean show) {
     if (show) {
       if (imgpop == null) {
-        BufferedImage img = image.get();
+        BufferedImage img = image.getBufferedImage();
         if (img == null) {
           Debug.log(4, "EditorPatternLabel: mouseEntered: not found " + this.imgName);
           return;
@@ -212,9 +205,9 @@ public class EditorPatternLabel extends EditorRegionLabel {
     return (CAPTURE.equals(lblText) || lblText.startsWith(NOTFOUND));
   }
 
-  public void resetLabel(String givenFileName, float sim, Location off, float resizeFactor) {
+  public void resetLabel(String givenFileName, double sim, Location off, float resizeFactor) {
     imgName = (new File(givenFileName)).getName();
-    image = Image.createThumbNail(imgName);
+    image = new Image(imgName);
     imgFile = image.getFilename();
     imgNameShort = imgName.replaceFirst(".png", "").replaceFirst(".jpg", "");
     this.sim = sim;
@@ -226,8 +219,8 @@ public class EditorPatternLabel extends EditorRegionLabel {
 
   public void setLabelText() {
     String buttonSimilar = "";
-    if (sim != 0.7F) {
-      buttonSimilar = String.format(Locale.ENGLISH, " .%d", (int) (sim * 100F));
+    if (sim != 0.7) {
+      buttonSimilar = String.format(Locale.ENGLISH, " .%d", (int) (sim * 100));
     }
     String buttonOffset = "";
     if (off != null && (off.x != 0 || off.y != 0)) {
@@ -247,7 +240,7 @@ public class EditorPatternLabel extends EditorRegionLabel {
 
   public void setLabelPyText() {
     if (!lblText.startsWith(NOTFOUND)) {
-      pyText = pane.getPatternString(imgName, sim, off, image, resizeFactor, mask);
+      pyText = pane.getPatternString(image, sim, off, resizeFactor, mask);
     }
   }
 
@@ -275,11 +268,11 @@ public class EditorPatternLabel extends EditorRegionLabel {
     return off;
   }
 
-  public void setSimilarity(float sim) {
+  public void setSimilarity(double sim) {
     this.sim = sim;
   }
 
-  public float getSimilarity() {
+  public double getSimilarity() {
     return sim;
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
 package org.sikuli.script.support.generators;
@@ -17,11 +17,10 @@ public interface ICodeGenerator {
    *
    *
    * @param pattern
-   * @param mask mask code TODO needs to be abstracted away
    *
    * @return
    */
-  public String pattern(Pattern pattern, String mask);
+  public String pattern(Pattern pattern);
 
   public String click(Pattern pattern, String[] modifiers);
 
@@ -36,6 +35,8 @@ public interface ICodeGenerator {
   public String doubleClick(Pattern pattern, String[] modifiers);
 
   public String rightClick(Pattern pattern, String[] modifiers);
+
+  public String wheel(Pattern pattern, int direction, int steps, String[] modifiers, long stepDelay);
 
   public String typeText(String text, String[] modifiers);
 

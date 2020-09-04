@@ -1,18 +1,13 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script.support;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.sikuli.basics.Settings;
 import org.sikuli.basics.Debug;
+import org.sikuli.basics.Settings;
 import org.sikuli.script.*;
+
+import java.util.*;
 
 /**
  * INTERNAL USE implements the observe action for a region and calls the ObserverCallBacks
@@ -55,7 +50,9 @@ public class Observer {
     log(3, "resetting observe states for " + observedRegion.toStringShort());
     synchronized (eventNames) {
       for (String name : eventNames.keySet()) {
-        eventStates.put(name, State.FIRST);
+        if (eventStates.get(name) != State.INACTIVE) {
+          eventStates.put(name, State.FIRST);
+        }
         eventCounts.put(name, 0);
         eventMatches.put(name, null);
       }
@@ -76,7 +73,7 @@ public class Observer {
   }
 
   public void setActive(String name, boolean state) {
-    if (eventNames.containsKey(me)) {
+    if (eventNames.containsKey(name)) {
       if (state) {
         eventStates.put(name, State.FIRST);
       } else {
@@ -174,9 +171,12 @@ public class Observer {
           eventStates.put(name, State.UNKNOWN);
         }
       }
+      if (eventStates.get(name) == State.INACTIVE || eventStates.get(name) == State.MISSING) {
+        continue;
+      }
       Object ptn = eventNames.get(name);
-      Image img = Image.getImageFromTarget(ptn);
-      if (img == null || !img.isUseable()) {
+      Image img = Element.getImage(ptn);
+      if (img == null || !img.isValid()) {
         Debug.error("EventMgr: checkPatterns: Image not valid", ptn);
         eventStates.put(name, State.MISSING);
         continue;
@@ -218,9 +218,9 @@ public class Observer {
         if (finder.hasNext()) {
           match = finder.next();
           match.setTimes(0, now - lastSearchTime);
-          if (match.getScore() >= getSimiliarity(ptn)) {
+          if (match.score() >= getSimiliarity(ptn)) {
             hasMatch = true;
-            img.setLastSeen(match.getRect(), match.getScore());
+            img.setLastSeen(match.getRect(), match.score());
           }
         }
       }

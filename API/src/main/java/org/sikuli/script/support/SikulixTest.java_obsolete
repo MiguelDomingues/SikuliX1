@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
-package org.sikuli.util;
+package org.sikuli.script.support;
 
 import org.sikuli.basics.Debug;
 import org.sikuli.basics.Settings;
@@ -314,7 +314,7 @@ public class SikulixTest {
       before("test2", "findChanges");
       show(testImage, 0);
       scr.wait(2.0);
-      Finder finder = new Finder(testImage);
+      Finder finder = new Finder(Image.create(testImage));
       String imgChange = "findChange3";
       List<Region> changes = finder.findChanges(imgChange);
       match = scr.exists(testImage, 10);
@@ -395,7 +395,7 @@ public class SikulixTest {
       String aText = "very lazy dog";
       if (openTestPage()) {
         Match found = null;
-        found = reg.hasText(Finder.asRegEx(aText));
+        found = reg.existsText(Finder.asRegEx(aText));
         if (SX.isNotNull(found)) {
           found.highlight(2);
         }

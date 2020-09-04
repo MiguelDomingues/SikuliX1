@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
+ */
+
 package org.sikuli.util;
 
 import org.sikuli.basics.Debug;
@@ -263,6 +267,14 @@ public class Highlight extends JFrame {
   }
 
   private static boolean inCloseAll = false;
+
+  public static void closeAll(long time) {
+    try {
+      Thread.sleep(time * 1000);
+    } catch (InterruptedException e) {
+    }
+    closeAll();
+  }
 
   public static void closeAll() {
     synchronized (Highlight.class) {

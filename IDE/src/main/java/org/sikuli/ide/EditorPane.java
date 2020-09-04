@@ -1,17 +1,20 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.ide;
 
 import org.apache.commons.io.FilenameUtils;
-import org.sikuli.basics.*;
+import org.sikuli.basics.Debug;
+import org.sikuli.basics.FileManager;
+import org.sikuli.basics.PreferencesUser;
+import org.sikuli.basics.Settings;
 import org.sikuli.idesupport.IDESupport;
 import org.sikuli.idesupport.IIDESupport;
 import org.sikuli.idesupport.IIndentationLogic;
-import org.sikuli.script.Image;
 import org.sikuli.script.ImagePath;
 import org.sikuli.script.Location;
 import org.sikuli.script.SX;
+import org.sikuli.script.ScreenImage;
 import org.sikuli.script.runners.JythonRunner;
 import org.sikuli.script.runners.PythonRunner;
 import org.sikuli.script.runners.TextRunner;
@@ -39,8 +42,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.List;
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
 import java.util.prefs.PreferenceChangeEvent;
 import java.util.prefs.PreferenceChangeListener;
 import java.util.regex.Matcher;
@@ -347,7 +350,8 @@ public class EditorPane extends JTextPane {
       if (!isBundle()) {
         checkSource();
       }
-      doParse();
+      //TODO parse content
+      parseText();
       restoreCaretPosition();
       setDirty(false);
     }
@@ -517,6 +521,26 @@ public class EditorPane extends JTextPane {
   //</editor-fold>
 
   //<editor-fold desc="15 content file">
+  public File getScreenshotImageFile(String imageName) {
+    if (!imageName.endsWith(".png")) {
+      imageName += ".png";
+    }
+    File screenshotDir = new File(getImagePath(), ImagePath.SCREENSHOT_DIRECTORY);
+    return new File(screenshotDir, imageName);
+  }
+
+  public boolean hasScreenshotImage(String imageName) {
+    return getScreenshotImageFile(imageName).exists();
+  }
+
+  public ScreenImage getScreenshotImage(String imageName) {
+    File screenshotFile = getScreenshotImageFile(imageName);
+    if (screenshotFile.exists()) {
+      return new ScreenImage(screenshotFile);
+    }
+    return null;
+  }
+
   public void setTemp(boolean temp) {
     editorPaneIsTemp = temp;
   }
@@ -539,7 +563,7 @@ public class EditorPane extends JTextPane {
 
   static boolean isPossibleBundle(String fileName) {
     if (FilenameUtils.getExtension(fileName).isEmpty() ||
-        FilenameUtils.getExtension(fileName).equals("sikuli")) {
+            FilenameUtils.getExtension(fileName).equals("sikuli")) {
       return true;
     }
     return false;
@@ -703,6 +727,10 @@ public class EditorPane extends JTextPane {
 
   public String getImagePath() {
     return editorPaneImageFolder.getAbsolutePath();
+  }
+
+  public String getScreenshotFolder() {
+    return new File(editorPaneImageFolder, ImagePath.SCREENSHOT_DIRECTORY).getAbsolutePath();
   }
 
   public void setBundleFolder() {
@@ -885,6 +913,18 @@ public class EditorPane extends JTextPane {
     setCaretPosition(end);
   }
 
+  public String getRegionString(int x, int y, int w, int h) {
+    return String.format("Region(%d,%d,%d,%d)", x, y, w, h);
+  }
+
+  public void insertRegionString(int x, int y, int w, int h) {
+    insertString(getRegionString(x, y, w, h));
+  }
+
+  public String getPatternString(org.sikuli.script.Image img, double sim, Location off, float rFactor, String mask) {
+    return codeGenerator.pattern(org.sikuli.script.Pattern.make(img, sim, off, rFactor, mask));
+  }
+
   private void insertString(int pos, String str) {
     Document doc = getDocument();
     try {
@@ -894,7 +934,7 @@ public class EditorPane extends JTextPane {
     }
   }
 
-  //TODO not used
+  //TODO not used: appendString
   public void appendString(String str) {
     Document doc = getDocument();
     try {
@@ -906,54 +946,35 @@ public class EditorPane extends JTextPane {
       log(-1, "appendString: Problem while trying to append\n%s", e.getMessage());
     }
   }
-
   //</editor-fold>
 
   //<editor-fold defaultstate="collapsed" desc="19 replace text patterns with image buttons">
-  public void reparseOnRenameImage(String oldName, String newName, boolean fileOverWritten) {
-    if (fileOverWritten) {
-      Image.unCache(newName);
-    }
-
-    String text = getText();
-    Pattern oldPattern = Pattern.compile("[\"']" + Pattern.quote(oldName) + "[\"']");
-    text = oldPattern.matcher(text).replaceAll(newName);
-    setText(text);
-    doReparse();
-  }
-
-  public void doReparse() {
-    saveCaretPosition();
-    readContent(getText());
-    updateDocumentListeners("reparse");
-    doParse();
-    restoreCaretPosition();
-  }
-
-  public void doParse() {
+  public void parseText() {
     Document doc = getDocument();
     Element root = doc.getDefaultRootElement();
     parse(root);
   }
 
-  private void parse(Element node) {
-    if (!showThumbs) {
-      // do not show any thumbnails
-      return;
-    }
-    int count = node.getElementCount();
-    for (int i = 0; i < count; i++) {
-      Element elm = node.getElement(i);
-      log(lvl + 1, elm.toString());
-      if (elm.isLeaf()) {
-        parseRange(elm.getStartOffset(), elm.getEndOffset());
-      } else {
-        parse(elm);
-      }
-    }
+  public void parseTextAgain() {
+    saveCaretPosition();
+    readContent(getText());
+    updateDocumentListeners("reparse");
+    parseText();
+    restoreCaretPosition();
   }
 
-  public String parseLineText(String line) {
+  public void parseTextAgainOnRenameImage(String oldName, String newName, boolean fileOverWritten) {
+    if (fileOverWritten) {
+      //TODO ImageCache action?
+    }
+    String text = getText();
+    Pattern oldPattern = Pattern.compile("[\"']" + Pattern.quote(oldName) + "[\"']");
+    text = oldPattern.matcher(text).replaceAll(newName);
+    setText(text);
+    parseTextAgain();
+  }
+
+  public String parseLine(String line) {
     if (line.startsWith("#")) {
       Pattern aName = Pattern.compile("^#[A-Za-z0-9_]+ =$");
       Matcher mN = aName.matcher(line);
@@ -985,6 +1006,23 @@ public class EditorPane extends JTextPane {
       return line.substring(mI.start(), mI.end());
     }
     return "";
+  }
+
+  private void parse(Element node) {
+    if (!showThumbs) {
+      // do not show any thumbnails
+      return;
+    }
+    int count = node.getElementCount();
+    for (int i = 0; i < count; i++) {
+      Element elm = node.getElement(i);
+      log(lvl + 1, elm.toString());
+      if (elm.isLeaf()) {
+        parseRange(elm.getStartOffset(), elm.getEndOffset());
+      } else {
+        parse(elm);
+      }
+    }
   }
 
   private int parseRange(int start, int end) {
@@ -1057,34 +1095,15 @@ public class EditorPane extends JTextPane {
     return false;
   }
 
-  public String getRegionString(int x, int y, int w, int h) {
-    return String.format("Region(%d,%d,%d,%d)", x, y, w, h);
-  }
-
-  public String getPatternString(String ifn, float sim, Location off, Image img, float resizeFactor, String mask) {
-//TODO ifn really needed??
-    if (ifn == null) {
-      return "\"" + EditorPatternLabel.CAPTURE + "\"";
-    }
-    org.sikuli.script.Pattern pattern = new org.sikuli.script.Pattern();
-    pattern.setFilename(ifn);
-    pattern.setImage(img);
-    pattern.similar(sim);
-    pattern.targetOffset(off);
-    pattern.resize(resizeFactor);
-
-    return codeGenerator.pattern(pattern, mask);
-  }
-
   public boolean showThumbs;
   static Pattern patPngStr = Pattern.compile("(\"[^\"]+?\\.(?i)(png|jpg|jpeg)\")");
   static Pattern patCaptureBtn = Pattern.compile("(\"__CLICK-TO-CAPTURE__\")");
   static Pattern patPatternStr = Pattern.compile(
-      "\\b(Pattern\\s*\\(\".*?\"\\)(\\.\\w+\\([^)]*\\))+)");
+          "\\b(Pattern\\s*\\(\".*?\"\\)(\\.\\w+\\([^)]*\\))+)");
   static Pattern patRegionStr = Pattern.compile(
-      "\\b(Region\\s*\\((-?[\\d\\s],?)+\\))");
+          "\\b(Region\\s*\\((-?[\\d\\s],?)+\\))");
   static Pattern patLocationStr = Pattern.compile(
-      "\\b(Location\\s*\\((-?[\\d\\s],?)+\\))");
+          "\\b(Location\\s*\\((-?[\\d\\s],?)+\\))");
   //</editor-fold>
 
   //<editor-fold defaultstate="collapsed" desc="20 dirty handling">
@@ -1151,17 +1170,18 @@ public class EditorPane extends JTextPane {
       return null;
     }
     String filename = file.getAbsolutePath();
-    if (!isBundle()) {
-      int currentTab = getTabs().getSelectedIndex();
-      if (alreadyOpen(filename, currentTab) != -1) {
-        log(-1, "saveAs: target bundle is open in IDE - close bundle before doing saveAs");
-        return null;
-      }
+    int currentTab = getTabs().getSelectedIndex();
+    int tabAlreadyOpen = alreadyOpen(filename, currentTab);
+    if (-1 != tabAlreadyOpen) {
+      SX.popError(String.format("Target is open in IDE\n%s\n" +
+                      "Close tab (%d) before doing saveAs or use other filename", filename, tabAlreadyOpen + 1),
+              "SaveAs: file is opened");
+      return null;
     }
     if (FileManager.exists(filename)) {
       int answer = JOptionPane.showConfirmDialog(
-          null, SikuliIDEI18N._I("msgFileExists", filename),
-          SikuliIDEI18N._I("dlgFileExists"), JOptionPane.YES_NO_OPTION);
+              null, SikuliIDEI18N._I("msgFileExists", filename),
+              SikuliIDEI18N._I("dlgFileExists"), JOptionPane.YES_NO_OPTION);
       if (answer != JOptionPane.YES_OPTION) {
         return null;
       }
@@ -1220,8 +1240,8 @@ public class EditorPane extends JTextPane {
     log(lvl, "writeSrcFile: " + editorPaneFile);
     try {
       this.write(new BufferedWriter(new OutputStreamWriter(
-          new FileOutputStream(editorPaneFile.getAbsolutePath()),
-          "UTF8")));
+              new FileOutputStream(editorPaneFile.getAbsolutePath()),
+              "UTF8")));
     } catch (IOException e) {
       return false;
     }
@@ -1247,8 +1267,8 @@ public class EditorPane extends JTextPane {
     }
     if (new File(zipPath).exists()) {
       int answer = JOptionPane.showConfirmDialog(
-          null, SikuliIDEI18N._I("msgFileExists", zipPath),
-          SikuliIDEI18N._I("dlgFileExists"), JOptionPane.YES_NO_OPTION);
+              null, SikuliIDEI18N._I("msgFileExists", zipPath),
+              SikuliIDEI18N._I("dlgFileExists"), JOptionPane.YES_NO_OPTION);
       if (answer != JOptionPane.YES_OPTION) {
         return null;
       }
@@ -1356,12 +1376,12 @@ public class EditorPane extends JTextPane {
       }
       Object[] options = {SikuliIDEI18N._I("yes"), SikuliIDEI18N._I("no"), SikuliIDEI18N._I("cancel")};
       int ans = JOptionPane.showOptionDialog(this,
-          SikuliIDEI18N._I("msgAskSaveChanges", getCurrentShortFilename()),
-          SikuliIDEI18N._I("dlgAskCloseTab"),
-          JOptionPane.YES_NO_CANCEL_OPTION,
-          JOptionPane.WARNING_MESSAGE,
-          null,
-          options, options[0]);
+              SikuliIDEI18N._I("msgAskSaveChanges", getCurrentShortFilename()),
+              SikuliIDEI18N._I("dlgAskCloseTab"),
+              JOptionPane.YES_NO_CANCEL_OPTION,
+              JOptionPane.WARNING_MESSAGE,
+              null,
+              options, options[0]);
       if (ans == JOptionPane.CANCEL_OPTION || ans == JOptionPane.CLOSED_OPTION) {
         return false;
       } else if (ans == JOptionPane.YES_OPTION) {
@@ -1513,7 +1533,7 @@ public class EditorPane extends JTextPane {
         return newFile;
       } catch (IOException e) {
         log(-1, "copyFileToBundle: Problem while trying to save %s\n%s",
-            filename, e.getMessage());
+                filename, e.getMessage());
         return f;
       }
     }

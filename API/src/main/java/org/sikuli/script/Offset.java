@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
 package org.sikuli.script;
@@ -155,9 +155,9 @@ public class Offset {
       y = what.h;
     } else if (whatEver instanceof Image) {
       Image what = (Image) whatEver;
-      if (null != what.get()) {
-        x = what.get().getWidth();
-        y = what.get().getHeight();
+      if (null != what.getBufferedImage()) {
+        x = what.getBufferedImage().getWidth();
+        y = what.getBufferedImage().getHeight();
       }
     } else if (whatEver instanceof Location) {
       Location what = (Location) whatEver;

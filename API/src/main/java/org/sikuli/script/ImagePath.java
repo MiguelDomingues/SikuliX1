@@ -1,24 +1,23 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script;
+
+import org.sikuli.basics.Debug;
+import org.sikuli.basics.FileManager;
+import org.sikuli.basics.Settings;
+import org.sikuli.script.support.RunTime;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.CodeSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
-import org.sikuli.basics.Debug;
-import org.sikuli.basics.FileManager;
-import org.sikuli.basics.Settings;
-import org.sikuli.script.support.RunTime;
 
 /**
  * maintain the path list of locations, where images will be searched.
@@ -38,6 +37,8 @@ public class ImagePath {
   private static void log(int level, String message, Object... args) {
     Debug.logx(level, me + message, args);
   }
+
+  public static final String SCREENSHOT_DIRECTORY = ".screenshots";
 
   //<editor-fold desc="01 path list">
   private static final List<PathEntry> imagePaths = Collections.synchronizedList(new ArrayList<PathEntry>());
@@ -124,15 +125,21 @@ public class ImagePath {
       if (pathEntry == null) {
         continue;
       }
-      Image.purge(pathEntry);
+      imageCachePurge();
     }
     PathEntry bundlePath = getBundle();
     imagePaths.clear();
     imagePaths.add(bundlePath);
   }
+
+  //TODO image cache purge ???
+  private static void imageCachePurge() {
+  }
+
   //</editor-fold>
 
   //<editor-fold desc="02 init path entry">
+
   /**
    * represents an imagepath entry
    */
@@ -315,6 +322,7 @@ public class ImagePath {
   //</editor-fold>
 
   //<editor-fold desc="03 handle path entry">
+
   /**
    * create a new PathEntry from the given absolute path name and add it to the
    * end of the current image path<br>
@@ -480,7 +488,7 @@ public class ImagePath {
   /**
    * remove entry with given path (same as given with add)
    *
-   * @param directory
+   * @param directory relative or absolute path as File
    * @return true on success, false otherwise
    */
   public static boolean remove(File directory) {
@@ -497,7 +505,7 @@ public class ImagePath {
    */
   private static boolean remove(URL pURL) {
     if (bundleEquals(pURL)) {
-      Image.purge();
+      imageCachePurge();
       return true;
     }
     Iterator<PathEntry> it = imagePaths.subList(1, imagePaths.size()).iterator();
@@ -508,7 +516,7 @@ public class ImagePath {
         continue;
       }
       it.remove();
-      Image.purge(pathEntry);
+      imageCachePurge();
     }
     return true;
   }
@@ -580,7 +588,7 @@ public class ImagePath {
     }
     if (folder.exists()) {
       PathEntry oldBundle = getBundle();
-      Image.purge(oldBundle);
+      imageCachePurge();
       PathEntry pathEntry = new PathEntry(folder);
       if (pathEntry.isValid()) {
         setBundle(pathEntry);
@@ -616,28 +624,21 @@ public class ImagePath {
   //</editor-fold>
 
   //<editor-fold desc="10 find image">
+
   /**
    * try to find the given relative image file name on the image path<br>
    * starting from entry 0, the first found existence is taken<br>
    * absolute file names are checked for existence
    *
-   * @param imageFileName relative or absolute filename
+   * @param imageFile relative or absolute file
    * @return a valid URL or null if not found/exists
    */
-  public static URL find(String imageFileName) {
+  public static URL find(File imageFile) {
     URL fURL = null;
     String proto = "";
-    File imageFile = new File(imageFileName);
-    if (imageFile.isAbsolute()) {
-      if (imageFile.exists()) {
-        try {
-          fURL = new URL("file", null, new File(imageFileName).getPath());
-        } catch (MalformedURLException e) {
-        }
-      } else {
-        log(-1, "find: File does not exist: %s", imageFileName);
-      }
-      return fURL;
+    String imageFileName = imageFile.getPath();
+    if (imageFile.isAbsolute() || imageFileName.startsWith("\\")) {
+      fURL = Element.createURL(imageFile);
     } else {
       for (PathEntry path : getPaths()) {
         if (path == null) {
@@ -645,26 +646,45 @@ public class ImagePath {
         }
         proto = path.pathURL.getProtocol();
         if ("file".equals(proto)) {
-          if (new File(path.pathURL.getPath(), imageFileName).exists()) {
-            try {
-              fURL = new URL("file", null, new File(path.pathURL.getPath(), imageFileName).getPath());
-              break;
-            } catch (MalformedURLException e) {
-            }
-          }
-        } else if ("jar".equals(proto) || proto.startsWith("http")) {
-          fURL = FileManager.getURLForContentFromURL(path.pathURL, imageFileName);
-          if (fURL != null) {
+          imageFile = new File(path.pathURL.getPath(), imageFileName);
+          if (imageFile.exists()) {
+            fURL = Element.createURL(imageFile);
             break;
           }
+        } else if ("jar".equals(proto) || proto.startsWith("http")) { //TODO imagepath jar and net
+          fURL = FileManager.getURLForContentFromURL(path.pathURL, imageFileName);
+        }
+        if (fURL != null) {
+          break;
         }
       }
       if (fURL == null) {
-        log(-1, "find: not there: %s", imageFileName);
+        log(-1, "find: %s file not found", imageFileName);
         dump(lvl);
       }
-      return fURL;
     }
+    return fURL;
+  }
+
+  public static URL find(String imageFileName) {
+    return find(new File(imageFileName));
+  }
+
+  private static URL normalize(URL url) {
+    String path = url.getPath();
+    if ("file".equals(url.getProtocol())) {
+      if (path.contains("%")) {
+        path = path.replace("%20", " ");
+        if (path.contains("%")) {
+        }
+      }
+      try {
+        new File(path).getCanonicalFile();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    return null;
   }
 
   /**

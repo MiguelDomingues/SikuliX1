@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.ide;
 
@@ -134,11 +134,7 @@ public class PatternPaneNaming extends JPanel {
 	}
 
 	public static String getFilenameFromImage(BufferedImage img) {
-		TextRecognizer tr = TextRecognizer.start();
-		if (!tr.isValid()) {
-			return "";
-		}
-		String text = TextRecognizer.doOCR(img);
+		String text = new org.sikuli.script.Image(img).text();
 		text = text.replaceAll("\\W", "");
 		if (text.length() > MAX_OCR_TEXT_LENGTH) {
 			return text.substring(0, MAX_OCR_TEXT_LENGTH);

@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+  ~ Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
   -->
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
@@ -22,6 +22,8 @@
 <hr>
 <h3>Version 2.1.0-SNAPSHOT (nightly builds - snapshot versions)</h3>
 
+<h3>Currently (June 1st) not useable until further notice</h3>
+
 This version was built at ##sikulixapiide## (Build ##TRAVIS_BUILD_NUMBER##)
 <br><br>
 <strong>For information about fixes, changes and other news see below.</strong>
@@ -29,11 +31,12 @@ This version was built at ##sikulixapiide## (Build ##TRAVIS_BUILD_NUMBER##)
 <hr>
 <h3>Edit and run scripts with the SikuliX IDE</h3>
 <hr>
-<h4><a href="https://raiman.github.io/SikuliX1/sikulix.jar">Download the ready to use sikulix.jar (SikuliX IDE)</a></h4>
+<h4><a href="https://raiman.github.io/SikuliX1/sikulix-2.1.0.jar">Download the ready to use sikulix.jar (SikuliX IDE)</a></h4>
 Just download, move it to a folder of your choice and doubleclick to run it.<br>
 An alternative to run it is from commandline using
 <pre>java -jar path-to/sikulix.jar</pre>
-
+<br>If you have any problems, run this from a commandline and analyse the log output
+<pre>java -jar path-to/sikulix.jar -v -c</pre>
 <hr>
 <h4>Needed for scripting support in the IDE and running scripts from commandline</h4>
 <h4><a href="https://repo1.maven.org/maven2/org/python/jython-standalone/2.7.1/jython-standalone-2.7.1.jar">The Jython interpreter 2.7.1 for python scripting (the default)</a></h4>
@@ -47,10 +50,11 @@ Download what you prefer or both to the same folder as you have your sikulix.jar
 <hr>
 <br>
 <strong><a href="">Look here</a></strong> if you want to use the <strong>sikulixapi-SNAPSHOT in a Maven context</strong>
-<h4><a href="https://raiman.github.io/SikuliX1/sikulixapi.jar">Download the ready to use sikulixapi.jar</a></h4>
+<h4><a href="https://raiman.github.io/SikuliX1/sikulixapi-2.1.0.jar">Download the ready to use sikulixapi.jar</a></h4>
 This artefact is for use on a Java classpath or for Java programming in mature IDEs as library jar.<br>
-<h4><a href="https://raiman.github.io/SikuliX1/sikulixapi-sources.jar">Download sikulixapi-sources.jar</a></h4>
-This artefact might be useful for Java programming in mature IDEs as reference.
+<h4><a href="https://raiman.github.io/SikuliX1/sikulixapi-2.1.0-sources.jar">Download sikulixapi-sources.jar</a></h4>
+This artefact might be useful for Java programming in mature IDEs as reference.<br>
+<h4><a href="https://raiman.github.io/SikuliX1/javadocs/index.html">read the javadocs online</a></h4>
 <hr>
 <h3>Fixes, changes and notes (##sikulixapiide##)</h3>
 <hr>
@@ -59,6 +63,10 @@ This artefact might be useful for Java programming in mature IDEs as reference.
 <br>FIXED (2.0.1):
 (<a href="https://github.com/RaiMan/SikuliX1/pull/", target="_blank">#</a>)
 -->
+<br>-------- 2019-12-04 ----------------
+<br>FIXED: API in Java project: -Dsikuli.Debug=x is now recognized (issue #215)
+<br>ADDED: Highlight: allow to show with frame only (transparent): Settings.HighlightTransparent = true (default: false)
+<br>FIXED: Popup dialogs using autoclose did not close
 <br>-------- 2019-11-18 ----------------
 <br>FIXED: multimonitor with hiDPI/Retina: each Screen has its own Robot again (ScreenUnion not yet useable)
 <br>FIXED (2.0.1): Add some delay after setting IDE to invisible to give it some time to vanish

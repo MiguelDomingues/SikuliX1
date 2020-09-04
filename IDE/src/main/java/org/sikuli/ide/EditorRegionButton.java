@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.ide;
 
@@ -78,7 +78,7 @@ class EditorRegionButton extends JButton implements ActionListener, EventObserve
     BufferedImage screen = new BufferedImage(scr_w, scr_h, BufferedImage.TYPE_INT_RGB);
     Graphics2D screen_g2d = screen.createGraphics();
     try {
-      screen_g2d.drawImage(simg.getImage(), 0, 0, scr_w, scr_h, null);
+      screen_g2d.drawImage(simg.getBufferedImage(), 0, 0, scr_w, scr_h, null);
       int sx = (int) ((x - simg.x) * scale), sy = (int) ((y - simg.y) * scale),
               sw = (int) (w * scale), sh = (int) (h * scale);
       screen_g2d.setColor(new Color(255, 0, 0, 150));
@@ -94,10 +94,10 @@ class EditorRegionButton extends JButton implements ActionListener, EventObserve
     String[] tokens = str.split("[(),]");
     int x, y, w, h;
     try {
-      x = Integer.valueOf(tokens[1].trim());
-      y = Integer.valueOf(tokens[2].trim());
-      w = Integer.valueOf(tokens[3].trim());
-      h = Integer.valueOf(tokens[4].trim());
+      x = Integer.parseInt(tokens[1].trim());
+      y = Integer.parseInt(tokens[2].trim());
+      w = Integer.parseInt(tokens[3].trim());
+      h = Integer.parseInt(tokens[4].trim());
     } catch (Exception e) {
       Debug.log(3, me + "createFromString: not possible: %s", str);
       return null;

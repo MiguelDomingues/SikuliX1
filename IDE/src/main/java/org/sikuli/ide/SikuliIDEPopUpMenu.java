@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
 package org.sikuli.ide;
@@ -328,7 +328,7 @@ public class SikuliIDEPopUpMenu extends JPopupMenu {
           if (popFile.endsWith("/") || popFile.endsWith("\\")) {
             popFile = popFile.substring(0, popFile.length() - 1);
           }
-          popFile.replace("\\", "\\\\");
+          popFile = popFile.replace("\\", "\\\\");
           popFile = "\"" + popFile + "\"";
           SikulixIDE.get().getCurrentCodePane().insertString(popFile);
         }
@@ -446,7 +446,7 @@ public class SikuliIDEPopUpMenu extends JPopupMenu {
       EditorPane cp = SikulixIDE.get().getCurrentCodePane();
       cp.setBundleFolder();
       cp.checkSource(); // reset
-      cp.doReparse();
+      cp.parseTextAgain();
       cp.getRunner().reset();
     }
   }

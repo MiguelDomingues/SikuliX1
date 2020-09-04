@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!--
-  ~ Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+  ~ Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
   -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -96,7 +96,7 @@
     <dependency>
       <groupId>net.sf.py4j</groupId>
       <artifactId>py4j</artifactId>
-      <version>0.10.8.1</version>
+      <version>0.10.9</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -123,10 +123,10 @@
       <version>5.4.0</version>
     </dependency>
     <dependency>
-      <groupId>org.reflections</groupId>
-      <artifactId>reflections</artifactId>
-      <version>0.9.11</version>
-    </dependency>
+	    <groupId>net.oneandone.reflections8</groupId>
+	    <artifactId>reflections8</artifactId>
+	    <version>0.11.6</version>
+	</dependency>
     <dependency>
       <groupId>net.sourceforge.tess4j</groupId>
       <artifactId>tess4j</artifactId>
@@ -168,7 +168,7 @@
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>2.9.10.1</version>
+      <version>2.10.0.pr1</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -181,6 +181,12 @@
           <artifactId>jnativehook</artifactId>
           <version>2.1.0</version>
       </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>
@@ -350,8 +356,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>9</source>
+          <target>9</target>
         </configuration>
       </plugin>
       <plugin>
@@ -363,6 +369,13 @@
               <mainClass>org.sikuli.script.Sikulix</mainClass>
             </manifest>
           </archive>
+        </configuration>
+      </plugin>
+     <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.9</version>
+        <configuration>
         </configuration>
       </plugin>
     </plugins>

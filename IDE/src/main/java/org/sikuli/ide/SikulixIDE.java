@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.ide;
 
@@ -52,6 +52,7 @@ public class SikulixIDE extends JFrame {
       SikulixIDE.class.getResource("/icons/sikulix.png"));
 
   public static void main(String[] args) {
+
     RunTime.afterStart(RunTime.Type.IDE, args);
 
     if ("m".equals(System.getProperty("os.name").substring(0, 1).toLowerCase())) {
@@ -218,14 +219,17 @@ public class SikulixIDE extends JFrame {
   private void initSikuliIDE() {
     Debug.log(3, "IDE: Reading Preferences");
     prefs = PreferencesUser.get();
-    //prefs.exportPrefs(new File(runTime.fUserDir, "SikulixIDEprefs.txt").getAbsolutePath());
+    //prefs.save(new File(runTime.fUserDir, "SikulixIDEprefs.txt").getAbsolutePath());
     if (prefs.getUserType() < 0) {
       prefs.setIdeSession("");
       prefs.setDefaults();
     }
-
+    //TODO why is this hack needed? The defaults from fresh preferences are not returned.
     Dimension windowSize = prefs.getIdeSize();
     Point windowLocation = prefs.getIdeLocation();
+    if (windowSize.width < 500 || windowSize.height < 200) {
+      windowSize = new Dimension(1024, 640);
+    }
     setSize(windowSize);
     setLocation(windowLocation);
 
@@ -558,6 +562,7 @@ public class SikulixIDE extends JFrame {
       return true;
     }
     log(-1, "restoreScriptFromSession: Can't load: %s", file);
+    tabs.remove(tabs.getSelectedIndex());
     return false;
   }
   //</editor-fold>
@@ -809,7 +814,7 @@ public class SikulixIDE extends JFrame {
   public void showAbout() {
     //TODO full featured About
     String info = "You are running " + runTime.SXVersionIDE
-        + "\nUsing Java version " + runTime.jreVersion
+        + "\nUsing Java version " + runTime.sysPropJRTVersion
         + "\n\nNeed help? -> start with Help Menu\n\n"
         + "*** Have fun ;-)\n\n"
         + "Tsung-Hsiang Chang aka vgod\n"
@@ -1156,7 +1161,7 @@ public class SikulixIDE extends JFrame {
         String fname = codePane.saveAsSelect();
         if (fname != null) {
           setCurrentFileTabTitle(fname);
-          codePane.doReparse();
+          codePane.parseTextAgain();
           codePane.setDirty(false);
         } else {
           log(-1, "doSaveAs: %s not completed", orgName);
@@ -1651,7 +1656,7 @@ public class SikulixIDE extends JFrame {
       }
       boolean showThumbsState = chkShowThumbs.getState();
       getCurrentCodePane().showThumbs = showThumbsState;
-      getCurrentCodePane().doReparse();
+      getCurrentCodePane().parseTextAgain();
       return;
     }
   }
@@ -2054,7 +2059,7 @@ public class SikulixIDE extends JFrame {
                 new EditorRegionButton(codePane, x, y, w, h).toString()));
           }
         } else {
-          codePane.insertString(codePane.getRegionString(x, y, w, h));
+          codePane.insertRegionString(x, y, w, h);
         }
       }
     }
@@ -2140,7 +2145,7 @@ public class SikulixIDE extends JFrame {
       String line = "";
       EditorPane codePane = getCurrentCodePane();
       line = codePane.getLineTextAtCaret();
-      String item = codePane.parseLineText(line);
+      String item = codePane.parseLine(line);
       if (!item.isEmpty()) {
         String eval = "";
         item = item.replaceAll("\"", "\\\"");
@@ -2195,7 +2200,7 @@ public class SikulixIDE extends JFrame {
       log(3, "TRACE: ButtonShowIn triggered");
       EditorPane codePane = getCurrentCodePane();
       String line = codePane.getLineTextAtCaret();
-      item = codePane.parseLineText(line);
+      item = codePane.parseLine(line);
       item = item.replaceAll("\"", "\\\"");
       if (item.startsWith("Pattern")) {
         item = "m = null; r = #region#; "
@@ -2435,7 +2440,7 @@ public class SikulixIDE extends JFrame {
             if (Image.getIDEshouldReload()) {
               EditorPane pane = getCurrentCodePane();
               int line = pane.getLineNumberAtCaret(pane.getCaretPosition());
-              getCurrentCodePane().doReparse();
+              getCurrentCodePane().parseTextAgain();
               getCurrentCodePane().jumpTo(line);
             }
             SikulixIDE.showAgain();
@@ -2520,7 +2525,7 @@ public class SikulixIDE extends JFrame {
 
               EventQueue.invokeLater(() -> {
                 pane.insertString("\n" + String.join("\n", actionStrings) + "\n");
-                pane.doReparse();
+                pane.parseTextAgain();
               });
             }
           } finally {

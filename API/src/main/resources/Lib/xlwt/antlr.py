@@ -1,6 +1,4 @@
 ## This file is part of PyANTLR. See LICENSE.txt for license
-## details..........Copyright (C) Wolfgang Haefelinger, 2004.
-
 ## This file was copied for use with xlwt from the 2.7.7 ANTLR distribution. Yes, it
 ## says 2.7.5 below. The 2.7.5 distribution version didn't have a
 ## version in it.

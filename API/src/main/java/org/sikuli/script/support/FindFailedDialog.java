@@ -1,22 +1,17 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script.support;
 
+import org.sikuli.script.Element;
 import org.sikuli.script.FindFailedResponse;
 
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Image;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JDialog;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 /**
  * INTERNAL USE
@@ -29,17 +24,17 @@ public class FindFailedDialog extends JDialog implements ActionListener {
   FindFailedResponse _response;
   boolean isCapture = false;
 
-  public FindFailedDialog(org.sikuli.script.Image target) {
+  public FindFailedDialog(Element target) {
     init(target, false);
   }
 
-  public FindFailedDialog(org.sikuli.script.Image target, boolean isCapture) {
+  public FindFailedDialog(Element target, boolean isCapture) {
+    super((JDialog) null, target.getName(), true);
     init(target, isCapture);
   }
 
-  private void init(org.sikuli.script.Image target, boolean isCapture) {
+  private void init(Element target, boolean isCapture) {
     this.isCapture = isCapture;
-    setModal(true);
     JPanel panel = new JPanel();
     panel.setLayout(new BorderLayout());
     Component targetComp = createTargetComponent(target);
@@ -89,13 +84,13 @@ public class FindFailedDialog extends JDialog implements ActionListener {
     return _response;
   }
 
-  <PatternString> Component createTargetComponent(org.sikuli.script.Image img) {
+  Component createTargetComponent(Element img) {
     JLabel cause = null;
     JPanel dialog = new JPanel();
     dialog.setLayout(new BorderLayout());
     if (img.isValid()) {
       if (!img.isText()) {
-        Image bimage = img.get();
+        Image bimage = img.getBufferedImage();
         if (bimage != null) {
           String rescale = "";
           JLabel iconLabel = new JLabel();

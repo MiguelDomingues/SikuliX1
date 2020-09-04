@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script;
 
@@ -13,7 +13,6 @@ import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.*;
 import java.io.*;
-import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -54,6 +53,19 @@ public class App {
     appsMac.put(Type.EDITOR, "TextEdit");
     appsMac.put(Type.BROWSER, "Safari");
     appsMac.put(Type.VIEWER, "Preview");
+  }
+
+  private boolean isGivenAsWindowTitle = false;
+  public boolean isWindow() {
+    return isGivenAsWindowTitle;
+  }
+
+  private void setGivenAsWindowTitle() {
+    isGivenAsWindowTitle = true;
+  }
+
+  private void resetGivenAsWindowTitle() {
+    isGivenAsWindowTitle = false;
   }
 
   //  //<editor-fold defaultstate="collapsed" desc="9 features based on org.apache.httpcomponents.httpclient">
@@ -287,7 +299,7 @@ public class App {
   private int appPID = -1;
   private int maxWait = 10;
 
-  private static void log(String msg, Object... args) {
+  public static void log(String msg, Object... args) {
     if (shouldLog) {
       Debug.logp("[AppLog] " + msg, args);
     }
@@ -303,7 +315,7 @@ public class App {
 
   public void reset() {
     appPID = -1;
-    appWindow = "???";
+    appWindow = "";
   }
 
   public App() {
@@ -315,37 +327,38 @@ public class App {
 
   public App(String name) {
     this();
-    appNameGiven = name;
-    init(appNameGiven);
+    init(name);
   }
 
   private void init(String name) {
     if (name.isEmpty()) {
       return;
     }
-    appName = appExec = appNameGiven;
+    appNameGiven = name.trim();
     String[] parts;
     //C:\Program Files\Mozilla Firefox\firefox.exe -- options
-    parts = appName.split(" -- ");
+    parts = appNameGiven.split(" -- ");
+    String possibleAppExec = "";
     if (parts.length > 1) {
       appOptions = parts[1].trim();
-      appExec = parts[0].replace("\"", "").trim();
+      possibleAppExec = parts[0].replace("\"", "").trim();
     } else {
-      if (appName.startsWith("\"")) {
-        parts = appName.substring(1).split("\"");
+      if (appNameGiven.startsWith("\"")) {
+        parts = appNameGiven.substring(1).split("\"");
         if (parts.length > 1) {
-          appOptions = appName.substring(parts[0].length() + 2).trim();
-          appExec = parts[0];
+          appOptions = appNameGiven.substring(parts[0].length() + 2).trim();
+          possibleAppExec = parts[0];
         } else {
-          appExec = appName.replace("\"", "");
+          possibleAppExec = appNameGiven.replace("\"", "");
         }
+      } else {
+        possibleAppExec = appNameGiven;
       }
     }
-    File fExec = new File(appExec);
+    File fExec = new File(possibleAppExec);
     if (fExec.isAbsolute()) {
       if (!fExec.exists()) {
         log("App: init: does not exist or not valid: %s", fExec);
-        appExec = "";
       } else {
         appExec = fExec.getAbsolutePath();
         appExecPath = fExec.getParent();
@@ -353,22 +366,36 @@ public class App {
     }
     if (!appExec.isEmpty()) {
       appName = fExec.getName();
-      if (appName.lastIndexOf(".") > appName.length() - 5) {
-        appName = appName.substring(0, appName.lastIndexOf("."));
+    } else {
+      if (RunTime.onWindows() || possibleAppExec.startsWith("?")) {
+        appName = appNameGiven;
+        setGivenAsWindowTitle();
+        if (appName.startsWith("?")) {
+          appName = appName.substring(1);
+        }
+      } else if (!RunTime.onWindows()) {
+        appExec = possibleAppExec;
+        appName = possibleAppExec;
       }
     }
-    log("App.create: %s", toStringShort());
+    log("App.create: %s", toString());
   }
 
   @Override
   public String toString() {
-    //_osUtil.get(this);
-    return String.format("[%d:%s (%s)] %s %s", appPID, appName, appWindow, appExec, appOptions);
+    if (isWindow()) {
+      return String.format("[%d:?%s (%s)] %s", appPID, appName, appWindow, appNameGiven);
+    } else {
+      return String.format("[%d:%s (%s)] %s %s", appPID, appName, appWindow, appExec, appOptions);
+    }
   }
 
   public String toStringShort() {
-    //_osUtil.get(this);
-    return String.format("[%d:%s]", appPID, appName);
+    if (isWindow()) {
+      return String.format("[%d:?%s]", appPID, appName);
+    } else {
+      return String.format("[%d:%s]", appPID, appName);
+    }
   }
   //</editor-fold>
 
@@ -429,6 +456,10 @@ public class App {
     return this;
   }
 
+  public void setNameGiven(String nameGiven) {
+    appNameGiven = nameGiven;
+  }
+
   public String getNameGiven() {
     return appNameGiven;
   }
@@ -453,7 +484,15 @@ public class App {
     appExec = exec;
   }
 
-  public String getWindow() {
+  public String getTitle() {
+    return getWindowTitle();
+  }
+
+  public String getTitle(int windowNumber) {
+    return getWindowTitle();
+  }
+
+  public String getWindowTitle() {
     return appWindow == null ? "" : appWindow;
   }
 
@@ -528,7 +567,7 @@ public class App {
     if (!isValid()) {
       return false;
     }
-    return !getWindow().isEmpty();
+    return !getWindowTitle().isEmpty();
   }
   //</editor-fold>
 
@@ -540,7 +579,7 @@ public class App {
    * If the app is already open, it is brought to foreground
    *
    * @param appName  name - something that could be used on commandline to start the app
-   * @param waitTime
+   * @param waitTime to wait for app to open (secs)
    * @return the App instance
    */
   public static App open(String appName, int waitTime) {
@@ -567,7 +606,7 @@ public class App {
    * @return this or null on failure
    */
   public boolean open() {
-    openAndWait(3);
+    openAndWait(5);
     return isValid();
   }
 
@@ -580,13 +619,14 @@ public class App {
    */
   public boolean open(int waitTime) {
     openAndWait(waitTime);
-    return isValid() & hasWindow();
+    return isValid() && hasWindow();
   }
 
   private void openAndWait(int waitTime) {
     isOpen = false;
     if (!isRunning(0)) {
-      if (_osUtil.open(this)) {
+      boolean isOpen = _osUtil.open(this);
+      if (isOpen) {
         if (!isRunning(waitTime)) {
           log("App.open: not running after %d secs (%s)", waitTime, appNameGiven);
         } else {
@@ -622,9 +662,25 @@ public class App {
     return new App(appName).close();
   }
 
+  public boolean isClosing() {
+    return isClosing;
+  }
+
+  private boolean isClosing = false;
+
+  /**
+   * tries to close the app defined by this App instance, waits max 10 seconds for the app to no longer be running
+   *
+   * @return this or null on failure
+   */
+  public boolean close() {
+    return close(5);
+  }
+
   /**
    * tries to close the app defined by this App instance, waits max given seconds for the app to no longer be running
    *
+   * @param waitTime to wait for app to close (secs)
    * @return this or null on failure
    */
   public boolean close(int waitTime) {
@@ -633,29 +689,25 @@ public class App {
       return false;
     }
     boolean success = _osUtil.close(this);
-//    if (success) {
-//      int timeTowait = maxWait;
-//      if (waitTime > 0) {
-//        timeTowait = waitTime;
-//      }
-//      while (isRunning(0) && timeTowait > 0) {
-//        timeTowait--;
-//      }
-//    }
+    if (success) {
+      isClosing = true;
+      int timeTowait = maxWait;
+      if (waitTime > 0) {
+        timeTowait = waitTime;
+      }
+      while (isRunning(0) && timeTowait > 0) {
+        pause(1);
+        timeTowait--;
+      }
+    }
+    isClosing = false;
     if (isValid() || !success) {
       log("App.close: did not work: %s", this);
       return false;
-    } log("App.close: %s", this);
+    }
+    log("App.close: %s", this);
+    reset();
     return true;
-  }
-
-  /**
-   * tries to close the app defined by this App instance, waits max 10 seconds for the app to no longer be running
-   *
-   * @return this or null on failure
-   */
-  public boolean close() {
-    return close(0);
   }
 
   public int closeByKey() {
@@ -717,20 +769,15 @@ public class App {
 
   /**
    * tries to identify a running app with name or (part of) window title
-   * bringing its topmost window to front
+   * bringing its window with given index to front
    *
+   * @param index of the window among the found windows
    * @param title name
    * @return an App instance - is invalid and not useable if not found as running
    */
   public static App focus(String title, int index) {
     App app = new App(title);
     app.focus();
-
-    // Does not make sense if title is not a valid executable name
-    // -> gives error popup on windows
-//    if (!app.isRunning()) {
-//      app.open();
-//    }
     return app;
   }
 
@@ -751,6 +798,9 @@ public class App {
       return false;
     } else {
       isFocused = true;
+      if (isWindow()) {
+        resetGivenAsWindowTitle();
+      }
       log("App.focus: %s", this);
     }
     return true;
@@ -766,7 +816,7 @@ public class App {
    * @return the region
    */
   public Region window() {
-    return asRegion(_osUtil.getWindow(this, 0));
+    return window(0);
   }
 
   /**
@@ -778,7 +828,17 @@ public class App {
    * @return the region
    */
   public Region window(int winNum) {
-    return asRegion(_osUtil.getWindow(this, winNum));
+    Region windowRegion = null;
+    Rectangle windowRect = _osUtil.getWindow(this, winNum);
+    if (null != windowRect) {
+      windowRegion = asRegion(windowRect);
+      if (winNum == 0) {
+        windowRegion.setName(getTitle());
+      } else {
+
+      }
+    }
+    return windowRegion;
   }
 
   /**

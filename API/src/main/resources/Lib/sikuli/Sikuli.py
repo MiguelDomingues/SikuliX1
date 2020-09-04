@@ -1,5 +1,4 @@
-# Copyright 2010-2018, Sikuli.org, sikulix.com
-# Released under the MIT License.
+#  Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
 
 from __future__ import with_statement
 
@@ -28,6 +27,10 @@ class RunTime(JRunTime):
 RUNTIME = RunTime.get()
 
 import org.sikuli.basics.Settings as Settings
+
+import org.sikuli.script.Element as JElement
+class Element(JElement):
+  pass
 
 #Debug.log(3, "Jython: sikuli: Sikuli: constants")
 import org.sikuli.script.FindFailed as FindFailed
@@ -91,25 +94,10 @@ import org.sikuli.script.TextRecognizer as JTextOCR
 class TextOCR(JTextOCR):
   pass
 
-OEM_TESSERACT_ONLY = TextOCR.OcrEngineMode.TESSERACT_ONLY
-OEM_LSTM_ONLY = TextOCR.OcrEngineMode.LSTM_ONLY
-OEM_TESSERACT_LSTM_COMBINED = TextOCR.OcrEngineMode.TESSERACT_LSTM_COMBINED
-OEM_DEFAULT = TextOCR.OcrEngineMode.DEFAULT
+import org.sikuli.script.OCR as JOCR
 
-PSM_OSD_ONLY =  TextOCR.PageSegMode.OSD_ONLY
-PSM_AUTO_OSD =  TextOCR.PageSegMode.AUTO_OSD
-PSM_AUTO_ONLY =  TextOCR.PageSegMode.AUTO_ONLY
-PSM_AUTO =  TextOCR.PageSegMode.AUTO
-PSM_SINGLE_COLUMN =  TextOCR.PageSegMode.SINGLE_COLUMN
-PSM_SINGLE_BLOCK_VERT_TEXT =  TextOCR.PageSegMode.SINGLE_BLOCK_VERT_TEXT
-PSM_SINGLE_BLOCK =  TextOCR.PageSegMode.SINGLE_BLOCK
-PSM_SINGLE_LINE =  TextOCR.PageSegMode.SINGLE_LINE
-PSM_SINGLE_WORD =  TextOCR.PageSegMode.SINGLE_WORD
-PSM_CIRCLE_WORD =  TextOCR.PageSegMode.CIRCLE_WORD
-PSM_SINGLE_CHAR =  TextOCR.PageSegMode.SINGLE_CHAR
-PSM_SPARSE_TEXT =  TextOCR.PageSegMode.SPARSE_TEXT
-PSM_SPARSE_TEXT_OSD =  TextOCR.PageSegMode.SPARSE_TEXT_OSD
-PSM_COUNT =  TextOCR.PageSegMode.COUNT
+class OCR(JOCR):
+  pass
 
 #Debug.log(3, "Jython: sikuli: Sikuli: import Match")
 from org.sikuli.script import Match as JMatch
@@ -240,13 +228,13 @@ def delOpt(props, key):
 def uprint(*args):
   for e in args[:-1]:
     if isinstance(e, str):
-      print e,
+      print(e),
     else:
-      print e.encode("utf8"),
+      print(e.encode("utf8")),
   if isinstance(args[-1], str):
-    print args[-1]
+    print(args[-1])
   else:
-    print args[-1].encode("utf8")
+    print(args[-1].encode("utf8"))
 
 ##
 # to make an utf8-encoded string from a str object
@@ -393,20 +381,23 @@ def popat(*args):
 # @param msg The given message string.
 # @param title gets the window title.
 def popup(msg, title="Sikuli Info"):
-  Sikulix.popup(msg, title)
+  #Sikulix.popup(msg, title)
+  Do.popup(msg, title)
 
 # Show error popup (special icon) containing the given message.
 # @param msg The given message string.
 # @param title gets the window title.
 def popError(msg, title="Sikuli Error"):
-  Sikulix.popError(msg, title)
+  #Sikulix.popError(msg, title)
+  Do.popError(msg, title)
 
 # Show a popup containing the given message asking for yes or no
 # @param msg The given message string.
 # @param title gets the window title.
 # @return True if answered Yes, else False
 def popAsk(msg, title="Sikuli Decision"):
-  return Sikulix.popAsk(msg, title)
+  #return Sikulix.popAsk(msg, title)
+  return Do.popAsk(msg, title)
 
 ##
 # Shows a question-message dialog requesting input from the user.
@@ -419,7 +410,8 @@ def popAsk(msg, title="Sikuli Decision"):
 def input(msg="", default="", title="Sikuli Input", hidden=False):
   if (hidden):
     default = ""
-  return Sikulix.input(msg, default, title, hidden)
+  #return Sikulix.input(msg, default, title, hidden)
+  return Do.input(msg, title, default, hidden)
 
 ##
 # Shows a dialog request to enter text in a multiline text field
@@ -442,17 +434,20 @@ def select(msg="", title="Sikuli Selection", options=(), default=None):
   if  optionsLen == 0:
     return ""
   try:
-    default = 0 + default;
-    if default > -1 and default < optionsLen:
-      default = options[default]
-    else:
-      default = None
+    ndefault = 0 + default;
+    if ndefault > -1 and ndefault < optionsLen:
+      default = options[ndefault]
   except:
     pass
-  return Sikulix.popSelect(msg, title, options, default)
+  #return Sikulix.popSelect(msg, title, options, default)
+  optionString = "";
+  for option in options:
+    optionString += str(len(option) + 1000) + option
+  return Do.popSelect(msg, title, default, optionString)
 
 def popFile(title = "Select File or Folder"):
-  return Sikulix.popFile(title)
+  #return Sikulix.popFile(title)
+  return Do.popFile("", title)
 
 ## ----------------------------------------------------------------------
 # set the default screen to given or primary screen

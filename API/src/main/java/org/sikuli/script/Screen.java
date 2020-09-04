@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.script;
 
@@ -92,10 +92,6 @@ public class Screen extends Region implements IScreen {
   private static String me = "Screen: ";
   private static int lvl = 3;
 
-  private static void log(int level, String message, Object... args) {
-    Debug.logx(level, me + message, args);
-  }
-
   public static Screen getDefaultInstance4py() {
     return new Screen();
   }
@@ -187,27 +183,6 @@ public class Screen extends Region implements IScreen {
 
   //<editor-fold desc="01 getter/setter">
   /**
-   * {@inheritDoc}
-   *
-   * @return Screen
-   */
-  @Override
-  public Screen getScreen() {
-    return this;
-  }
-
-  /**
-   * Should not be used - makes no sense for Screen object
-   *
-   * @param s Screen
-   * @return returns a new Region with the screen's location/dimension
-   */
-  @Override
-  protected Region setScreen(IScreen s) {
-    return new Region(getBounds());
-  }
-
-  /**
    * @return number of available screens
    */
   public static int getNumberScreens() {
@@ -296,12 +271,12 @@ public class Screen extends Region implements IScreen {
   //<editor-fold desc="02 factory for non-local instances">
   @Override
   public Region setOther(Region element) {
-    return element.setOtherScreen(this);
+    return (Region) element.setOtherScreen(this);
   }
 
   @Override
   public Location setOther(Location element) {
-    return element.setOtherScreen(this);
+    return (Location) element.setOtherScreen(this);
   }
 
   /**
@@ -344,7 +319,7 @@ public class Screen extends Region implements IScreen {
 
   @Override
   public Location newLocation(int x, int y) {
-    return new Location(x, y).setOtherScreen(this);
+    return (Location) new Location(x, y).setOtherScreen(this);
   }
   //</editor-fold>
 
@@ -612,7 +587,7 @@ public class Screen extends Region implements IScreen {
               if (!path.isEmpty()) {
                 shot.getFile(path, name);
               } else {
-                shot.saveInBundle(name);
+                shot.save(name);
               }
             }
             return shot;
@@ -637,7 +612,7 @@ public class Screen extends Region implements IScreen {
       }
     }
     if (shot != null) {
-      shot.getFile();
+      shot.getFilename();
     }
     return shot;
   }
@@ -820,24 +795,6 @@ public class Screen extends Region implements IScreen {
     }
     resetActiveCapturePrompt();
     return simg;
-  }
-
-  public String saveCapture(String name) {
-    return saveCapture(name, null);
-  }
-
-  public String saveCapture(String name, Region reg) {
-    ScreenImage simg;
-    if (reg == null) {
-      simg = userCapture("Capture for image " + name);
-    } else {
-      simg = capture(reg);
-    }
-    if (simg == null) {
-      return null;
-    } else {
-      return simg.saveInBundle(name);
-    }
   }
 
   /**

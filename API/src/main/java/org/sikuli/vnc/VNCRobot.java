@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 package org.sikuli.vnc;
 
@@ -694,7 +694,7 @@ class VNCRobot implements IRobot {
   @Override
   public Color getColorAt(int x, int y) {
     ScreenImage image = captureScreen(new Rectangle(x, y, 1, 1));
-    return new Color(image.getImage().getRGB(0, 0));
+    return new Color(image.getBufferedImage().getRGB(0, 0));
   }
 
   @Override

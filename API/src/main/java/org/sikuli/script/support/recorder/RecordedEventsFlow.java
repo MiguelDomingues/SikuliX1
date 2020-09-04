@@ -1,53 +1,30 @@
 /*
- * Copyright (c) 2010-2018, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
 package org.sikuli.script.support.recorder;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
-
-import javax.imageio.ImageIO;
-import javax.swing.ProgressMonitor;
-
-import org.apache.commons.io.FileUtils;
 import org.jnativehook.NativeInputEvent;
 import org.jnativehook.keyboard.NativeKeyEvent;
 import org.jnativehook.mouse.NativeMouseEvent;
+import org.jnativehook.mouse.NativeMouseWheelEvent;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.Rect;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-import org.sikuli.basics.FileManager;
-import org.sikuli.script.Finder;
-import org.sikuli.script.Finder.FindInput2;
-import org.sikuli.script.Finder.Finder2;
-import org.sikuli.script.Image;
-import org.sikuli.script.ImagePath;
-import org.sikuli.script.Key;
-import org.sikuli.script.Location;
-import org.sikuli.script.Match;
-import org.sikuli.script.Pattern;
+import org.sikuli.script.*;
 import org.sikuli.script.support.KeyboardLayout;
-import org.sikuli.script.support.RunTime;
-import org.sikuli.script.support.recorder.actions.ClickAction;
-import org.sikuli.script.support.recorder.actions.DoubleClickAction;
-import org.sikuli.script.support.recorder.actions.DragDropAction;
-import org.sikuli.script.support.recorder.actions.IRecordedAction;
-import org.sikuli.script.support.recorder.actions.RightClickAction;
-import org.sikuli.script.support.recorder.actions.TypeKeyAction;
-import org.sikuli.script.support.recorder.actions.TypeTextAction;
-import org.sikuli.script.support.recorder.actions.WaitAction;
+import org.sikuli.script.support.recorder.actions.*;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Keeps a list of successive recorded events and
@@ -69,12 +46,8 @@ public class RecordedEventsFlow {
   private TreeMap<Long, NativeInputEvent> events = new TreeMap<>();
   private TreeMap<Long, String> screenshots = new TreeMap<>();
 
-  List<Character> modifiers = new ArrayList<>();
+  Set<Character> modifiers = new LinkedHashSet<>();
   StringBuilder typedText = new StringBuilder();
-
-  static {
-    RunTime.loadLibrary(RunTime.libOpenCV);
-  }
 
   /**
    * Adds an event to the event flow.
@@ -216,24 +189,25 @@ public class RecordedEventsFlow {
         .toArray(new String[modifiers.size()]);
   }
 
+  /*
+   * Finds the next key press event within 3 seconds
+   */
   private Long findNextPressedKeyEventTime(Long time) {
-    Long nextEventTime = events.ceilingKey(time + 1);
+    Map<Long, NativeInputEvent> nextEvents = events.subMap(time + 1, time + 3000);
 
-    if (nextEventTime == null || nextEventTime - time > 3000) {
-      return null;
+    for(Map.Entry<Long, NativeInputEvent> entry : nextEvents.entrySet()) {
+      NativeInputEvent event = entry.getValue();
+
+      if(event instanceof NativeKeyEvent) {
+        if(NativeKeyEvent.NATIVE_KEY_PRESSED == entry.getValue().getID()) {
+          return entry.getKey();
+        }
+      } else {
+        return null;
+      }
     }
 
-    NativeInputEvent event = events.get(nextEventTime);
-
-    if (!(event instanceof NativeKeyEvent)) {
-      return null;
-    }
-
-    if (event.getID() == NativeKeyEvent.NATIVE_KEY_PRESSED) {
-      return nextEventTime;
-    }
-
-    return findNextPressedKeyEventTime(nextEventTime);
+    return null;
   }
 
   private String getKeyText(char ch) {
@@ -255,6 +229,27 @@ public class RecordedEventsFlow {
 
   private Map.Entry<Long, NativeInputEvent> getNextEvent(Long time) {
     return events.ceilingEntry(time + 1);
+  }
+
+  /*
+   * Finds the next mouse wheel event within 1 second in the given direction
+   */
+  private NativeMouseWheelEvent findNextWheelEvent(long time, int direction) {
+    Collection<NativeInputEvent> nextEvents = events.subMap(time + 1, time + 1000).values();
+
+    for (NativeInputEvent event : nextEvents){
+      if(NativeMouseEvent.NATIVE_MOUSE_WHEEL == event.getID()) {
+        NativeMouseWheelEvent wheelEvent = (NativeMouseWheelEvent) event;
+        int eventDirection = wheelEvent.getWheelRotation() > 0 ? Mouse.WHEEL_DOWN : Mouse.WHEEL_UP;
+        if (eventDirection == direction) {
+          return wheelEvent;
+        } else {
+          return null;
+        }
+      }
+    }
+
+    return null;
   }
 
   private Long pressedTime = null;
@@ -304,13 +299,11 @@ public class RecordedEventsFlow {
             dragStartEvent = null;
           }
       }
+    } else if (NativeMouseEvent.NATIVE_MOUSE_WHEEL == event.getID()) {
+      actions.addAll(this.handleMouseWheel(time, (NativeMouseWheelEvent) event));
     }
 
     return actions;
-  }
-
-  private void saveScreenshot(Mat screenshot, File imageFile) {
-    FileManager.saveScreenshotImage(Finder2.getBufferedImage(screenshot), imageFile.getName(), ImagePath.getBundlePath());
   }
 
   private List<IRecordedAction> handleDragDrop(Long time, NativeMouseEvent event) {
@@ -326,18 +319,18 @@ public class RecordedEventsFlow {
       File dropFile = new File(ImagePath.getBundlePath(), time + ".png");
 
       try {
-        ImageIO.write(dragImage.get(), "PNG", dragFile);
-        ImageIO.write(dropImage.get(), "PNG", dropFile);
+        ImageIO.write(dragImage.getBufferedImage(), "PNG", dragFile);
+        ImageIO.write(dropImage.getBufferedImage(), "PNG", dropFile);
 
         saveScreenshot(screenshot, dragFile);
         saveScreenshot(screenshot, dropFile);
 
         Pattern dragPattern = new Pattern(dragFile.getAbsolutePath());
-        dragPattern.targetOffset(dragImage.getOffset());
-        dragPattern.similar(dragImage.getSimilarity());
+        dragPattern.targetOffset(dragImage.offset());
+        dragPattern.similar(dragImage.similarity());
         Pattern dropPattern = new Pattern(dropFile.getAbsolutePath());
-        dropPattern.targetOffset(dropImage.getOffset());
-        dropPattern.similar(dropImage.getSimilarity());
+        dropPattern.targetOffset(dropImage.offset());
+        dropPattern.similar(dropImage.similarity());
 
         actions.add(new DragDropAction(dragPattern, dropPattern));
       } catch (IOException e) {
@@ -357,18 +350,18 @@ public class RecordedEventsFlow {
     Image image = findRelevantImage(screenshot, event);
 
     if (image != null) {
-      File file = new File(ImagePath.getBundlePath() + File.separator + time + ".png");
+      File file = new File(ImagePath.getBundlePath(),"" + time + ".png");
 
       try {
-        ImageIO.write(image.get(), "PNG", file);
+        ImageIO.write(image.getBufferedImage(), "PNG", file);
         saveScreenshot(screenshot, file);
       } catch (IOException e) {
         e.printStackTrace();
       }
 
       Pattern pattern = new Pattern(file.getAbsolutePath());
-      pattern.targetOffset(image.getOffset());
-      pattern.similar(image.getSimilarity());
+      pattern.targetOffset(image.offset());
+      pattern.similar(image.similarity());
 
       ClickAction clickAction = null;
 
@@ -386,11 +379,70 @@ public class RecordedEventsFlow {
     return actions;
   }
 
+  private int wheelSteps = 0;
+  private Long wheelStartTime = null;
+
+  private List<IRecordedAction> handleMouseWheel(Long time, NativeMouseWheelEvent event) {
+    List<IRecordedAction> actions = new ArrayList<>();
+
+    if (wheelStartTime == null) {
+      wheelStartTime = time;
+    }
+
+    int steps = event.getWheelRotation();
+    int direction = steps > 0 ? Mouse.WHEEL_DOWN : Mouse.WHEEL_UP;
+    steps = Math.abs(steps);
+
+    wheelSteps += steps;
+
+    NativeMouseWheelEvent nextWheelEvent = findNextWheelEvent(time, direction);
+
+    if (nextWheelEvent == null) {
+      Long firstMouseMoveEventTime = findFirstMouseMoveTime(wheelStartTime);
+
+      Mat screenshot = readCeilingScreenshot(firstMouseMoveEventTime);
+
+      Image image = findRelevantImage(screenshot, event);
+
+      if (image != null) {
+        File file = new File(ImagePath.getBundlePath(), "" + time + ".png");
+
+        try {
+          ImageIO.write(image.getBufferedImage(), "PNG", file);
+          saveScreenshot(screenshot, file);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+
+        Pattern pattern = new Pattern(file.getAbsolutePath());
+        pattern.targetOffset(image.offset());
+        pattern.similar(image.similarity());
+
+        long stepDelay = (time - wheelStartTime) / wheelSteps;
+
+        MouseWheelAction wheelAction = new MouseWheelAction(pattern, direction, wheelSteps, getModifierTexts(), stepDelay);
+
+        actions.add(waitIfNeeded(image, firstMouseMoveEventTime, wheelAction));
+      }
+
+      wheelSteps = 0;
+      wheelStartTime = null;
+    }
+
+    return actions;
+  }
+
+  private void saveScreenshot(Mat screenshot, File imageFile) {
+    File screenshotDir = new File(ImagePath.getBundlePath(), ImagePath.SCREENSHOT_DIRECTORY);
+    File screenshotFile = new File(screenshotDir, imageFile.getName());
+    new Image(screenshot).save(screenshotFile);
+  }
+
   /*
    * detects if the image was already there before the mouse started to move. If
    * not, it prepends a wait to the click.
    */
-  private IRecordedAction waitIfNeeded(Image image, Long time, ClickAction action) {
+  private IRecordedAction waitIfNeeded(Image image, Long time, PatternAction action) {
     Long lastNonMouseMoveEventTime = events.floorKey(time - 1);
 
     if (lastNonMouseMoveEventTime == null) {
@@ -398,13 +450,13 @@ public class RecordedEventsFlow {
     }
 
     Mat lastNonMouseMoveScreenshot = readFloorScreenshot(lastNonMouseMoveEventTime);
-    Finder finder = new Finder(Finder2.getBufferedImage(lastNonMouseMoveScreenshot));
+    Finder finder = new Finder(Element.getBufferedImage(lastNonMouseMoveScreenshot));
 
     finder.find(image);
 
     List<Match> matches = finder.getList();
 
-    boolean wasHereBeforeMouseMove = matches.stream().anyMatch((m) -> m.getScore() > 0.9);
+    boolean wasHereBeforeMouseMove = matches.stream().anyMatch((m) -> m.score() > 0.9);
 
     if (!wasHereBeforeMouseMove) {
       Pattern pattern = action.getPattern();
@@ -544,7 +596,7 @@ public class RecordedEventsFlow {
 
     Mat part = new Mat(screenshot, roi);
 
-    Image image = new Image(Finder2.getBufferedImage(part));
+    Image image = new Image(part);
 
     adjustOffset(image, roi, event);
     adjustSimilarity(image, screenshot);
@@ -556,7 +608,7 @@ public class RecordedEventsFlow {
    * restores the original event location on the image
    */
   private void adjustOffset(Image image, Rect roi, NativeMouseEvent event) {
-    image.setOffset(new Location(event.getX() - roi.x - roi.width / 2, event.getY() - roi.y - roi.height / 2));
+    image.offset(new Location(event.getX() - roi.x - roi.width / 2, event.getY() - roi.y - roi.height / 2));
   }
 
   /*
@@ -564,18 +616,15 @@ public class RecordedEventsFlow {
    * found
    */
   private void adjustSimilarity(Image image, Mat screenshot) {
-    FindInput2 input = new FindInput2();
-    input.setSource(screenshot);
-
-    Finder finder = new Finder(input);
+    Finder finder = new Finder(screenshot);
     finder.find(image);
     List<Match> matches = finder.getList();
 
     if (matches.size() > 1) {
       // matches are sorted best first, take second match
       // as reference for adjustment
-      double nextScore = Math.ceil(matches.get(1).getScore() * 10) / 10;
-      image.setSimilarity(nextScore);
+      double nextScore = Math.ceil(matches.get(1).score() * 10) / 10;
+      image.similarity(nextScore);
     }
   }
 

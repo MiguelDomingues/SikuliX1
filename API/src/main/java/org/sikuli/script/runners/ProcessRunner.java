@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019, sikuli.org, sikulix.com - MIT license
+ * Copyright (c) 2010-2020, sikuli.org, sikulix.com - MIT license
  */
 
 package org.sikuli.script.runners;
@@ -154,6 +154,18 @@ public class ProcessRunner extends AbstractScriptRunner{
 
   public static void detach(List<String> cmd) {
     if (cmd.size() > 0) {
+      String line = "";
+      boolean shouldPrint = false;
+      for (String item : cmd) {
+        line += " " + item.trim();
+        if ("-v".equals(item.trim())) {
+          shouldPrint = true;
+        }
+      }
+      if (shouldPrint) {
+        System.out.println("[DEBUG] ProcessRunner::detach:");
+        System.out.println(line.trim());
+      }
       ProcessBuilder app = new ProcessBuilder();
       Map<String, String> processEnv = app.environment();
       app.command(cmd);
@@ -194,13 +206,49 @@ public class ProcessRunner extends AbstractScriptRunner{
     return exitValue;
   }
 
-  public static int startApp(String... givenCmd) {
+  public static boolean closeApp(String... givenCmd) {
+    List<String> cmd = new ArrayList<>();
+    cmd.addAll(Arrays.asList(givenCmd));
+    return closeApp(cmd);
+  }
+
+  public static boolean closeApp(List<String> givenCmd) {
+    RunTime runTime = RunTime.get();
+    int exitValue = 0;
+    if (runTime.runningWindows) {
+      List<String> cmd = new ArrayList<>();
+      cmd.add("cmd");
+      cmd.add("/C");
+      cmd.add("taskkill");
+      cmd.add("/PID");
+      cmd.add(givenCmd.get(0));
+      cmd.add(">nul");
+      cmd.add("2>&1");
+      if (cmd.size() > 0) {
+        ProcessBuilder app = new ProcessBuilder();
+        Map<String, String> processEnv = app.environment();
+        app.command(cmd);
+        app.redirectErrorStream(true);
+        app.redirectInput(ProcessBuilder.Redirect.INHERIT);
+        app.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+        try {
+          app.start();
+        } catch (Exception e) {
+          p("[Error] ProcessRunner: taskkill: %s", e.getMessage());
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  public static boolean startApp(String... givenCmd) {
     List<String> cmd = new ArrayList<>();
     cmd.addAll(Arrays.asList(givenCmd));
     return startApp(cmd);
   }
 
-  public static int startApp(List<String> givenCmd) {
+  public static boolean startApp(List<String> givenCmd) {
     RunTime runTime = RunTime.get();
     int exitValue = 0;
     if (runTime.runningWindows) {
@@ -220,6 +268,8 @@ public class ProcessRunner extends AbstractScriptRunner{
           startAppParams(cmd, givenCmd.get(np));
         }
       }
+      cmd.add(">nul");
+      cmd.add("2>&1");
       if (cmd.size() > 0) {
         ProcessBuilder app = new ProcessBuilder();
         Map<String, String> processEnv = app.environment();
@@ -227,23 +277,15 @@ public class ProcessRunner extends AbstractScriptRunner{
         app.redirectErrorStream(true);
         app.redirectInput(ProcessBuilder.Redirect.INHERIT);
         app.redirectOutput(ProcessBuilder.Redirect.INHERIT);
-        Process process = null;
         try {
-          process = app.start();
+          app.start();
         } catch (Exception e) {
           p("[Error] ProcessRunner: start: %s", e.getMessage());
-        }
-        try {
-          if (process != null) {
-            process.waitFor();
-            exitValue = process.exitValue();
-          }
-        } catch (InterruptedException e) {
-          p("[Error] ProcessRunner: waitFor: %s", e.getMessage());
+          return false;
         }
       }
     }
-    return exitValue;
+    return true;
   }
 
   private static List<String> startAppParams(List<String> cmd, String param) {
