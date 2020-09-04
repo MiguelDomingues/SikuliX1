@@ -95,6 +95,8 @@ public class Highlight extends JFrame {
       } else {
         setContentPane(panel);
       }
+      panel.setOpaque(false);
+      setContentPane(panel);
     }
   }
 
@@ -188,6 +190,7 @@ public class Highlight extends JFrame {
     int frameW = sidey + 2 * lineWidth;
     int frameH = sidex + 2 * lineWidth;
     setSize(frameW, frameH);
+<<<<<<< HEAD
     if (Settings.HighlightTransparent) {
       return null;
     }
@@ -207,6 +210,9 @@ public class Highlight extends JFrame {
         }
       }
     };
+=======
+    JPanel panel = new JPanel();
+>>>>>>> 84504c602a37b091501e707b0503530c35a24e13
     panel.setBorder(BorderFactory.createLineBorder(givenColor, 3));
     return panel;
   }
