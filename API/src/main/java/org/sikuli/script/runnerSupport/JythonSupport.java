@@ -333,6 +333,8 @@ public class JythonSupport implements IRunnerSupport {
           "# -*- coding: utf-8 -*- ",
           "import org.sikuli.script.SikulixForJython",
           "from sikuli import *",
+          "from net.outsystems.demorecorder import Recorder",
+          "from servicestudio import ServiceStudio",          
           "use() #resetROI()"
   };
   //</editor-fold>
