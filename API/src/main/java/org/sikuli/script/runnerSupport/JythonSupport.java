@@ -334,7 +334,8 @@ public class JythonSupport implements IRunnerSupport {
           "import org.sikuli.script.SikulixForJython",
           "from sikuli import *",
           "from net.outsystems.demorecorder import Recorder",
-          "from servicestudio import ServiceStudio",          
+          "from net.outsystems.demorecorder import ServiceStudio",
+//          "from servicestudio import ServiceStudio",          
           "use() #resetROI()"
   };
   //</editor-fold>
