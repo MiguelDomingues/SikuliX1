@@ -1281,6 +1281,7 @@ java.desktop/sun.awt=ALL-UNNAMED
     Mouse.reset();
     if (isTerminating) {
       stopPythonServer();
+      ScriptEndHooks.runAll();
     }
   }
 

@@ -1,4 +1,4 @@
-package org.sikuli.ide;
+package org.sikuli.script.support;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -12,7 +12,7 @@ public class ScriptEndHooks {
     }
 
     public static void runAll() {
-        while(!hooks.isEmpty()){
+        while (!hooks.isEmpty()) {
             Consumer<Void> r = hooks.poll();
             r.accept(null);
         }
