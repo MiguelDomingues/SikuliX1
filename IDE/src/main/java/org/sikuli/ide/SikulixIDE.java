@@ -41,7 +41,6 @@ public class SikulixIDE extends JFrame {
   //<editor-fold desc="00 startup / quit">
   private static String me = "IDE: ";
   private static int lvl = 3;
-  private static Object lock = new Object();
 
   private static void log(int level, String message, Object... args) {
     Debug.logx(level, me + message, args);
@@ -90,22 +89,11 @@ public class SikulixIDE extends JFrame {
       sikulixIDE.initSikuliIDE();
     });
 
-    synchronized (lock) {
-      try {
-        lock.wait();
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-
   }
 
   public boolean quit() {
     terminate();
-    synchronized (lock) {
-      lock.notify();
-    }
-      if (getCurrentCodePane() == null) {
+    if (getCurrentCodePane() == null) {
       return true;
     } else {
       return false;
