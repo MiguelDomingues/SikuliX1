@@ -2454,6 +2454,7 @@ public class SikulixIDE extends JFrame {
             log(-1, "Run Script: internal error:");
             e.printStackTrace();
           } finally {
+            ScriptEndHooks.runAll();
             setCurrentRunner(null);
             setCurrentScript(null);
             Runner.setLastScriptRunReturnCode(exitValue);
