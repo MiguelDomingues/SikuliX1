@@ -378,6 +378,9 @@ public class JythonSupport implements IRunnerSupport {
           "# -*- coding: utf-8 -*- ",
           "import time; start = time.time()",
           "from sikuli import *",
+          "from net.outsystems.demorecorder import Recorder",
+          "from net.outsystems.demorecorder import ServiceStudio",
+          "from loader import Loader",
           "resetBeforeScriptStart()",
           "Debug.log(3, 'Jython: BeforeScript: %s (%f)',  SCREEN, time.time()-start)",
   };
