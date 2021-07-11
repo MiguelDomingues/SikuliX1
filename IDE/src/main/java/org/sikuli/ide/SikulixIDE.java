@@ -89,6 +89,7 @@ public class SikulixIDE extends JFrame {
     EventQueue.invokeLater(() -> {
       sikulixIDE.initSikuliIDE();
     });
+
   }
 
   public boolean quit() {

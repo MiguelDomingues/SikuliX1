@@ -1392,6 +1392,7 @@ java.desktop/sun.awt=ALL-UNNAMED
     if (isTerminating) {
       stopPythonServer();
       hasDoneCleanUp = true;
+      ScriptEndHooks.runAll();
     }
   }
 
